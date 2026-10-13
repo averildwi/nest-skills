@@ -131,6 +131,16 @@ test('existing AGENTS.md and CLAUDE.md of the user are never touched', () => {
     assert.match(r.out, /git add AGENTS\.nest-skills\.md \.claude\/skills \.nest-skills\.json/);
 });
 
+test('user AGENTS.md that already links the fallback index gets no link hint', () => {
+    const root = nestProject({ 'AGENTS.md': '# My rules\n' });
+    assert.match(run(root, ['--agent', 'opencode', '--yes']).out, /Link the index from your AGENTS\.md/);
+    fs.writeFileSync(path.join(root, 'AGENTS.md'), '# My rules\nRead AGENTS.nest-skills.md before writing NestJS code.\n');
+    const r = run(root, ['--yes']);
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.out, /already links AGENTS\.nest-skills\.md/);
+    assert.doesNotMatch(r.out, /Link the index from your AGENTS\.md/);
+});
+
 test('user CLAUDE.md that already imports the index is accepted silently', () => {
     const root = nestProject({ 'CLAUDE.md': '@AGENTS.md\n\nMy notes\n' });
     const r = run(root, ['--agent', 'claude', '--yes']);

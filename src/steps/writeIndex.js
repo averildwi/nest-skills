@@ -32,12 +32,17 @@ module.exports = {
         record(ctx, [decision]);
         const entries = [decision.entry];
         if (ctx.indexFile !== 'AGENTS.md') {
-            entries.push({
-                kind: 'warn',
-                label: 'AGENTS.md',
-                reason: `yours, left untouched. Add a line pointing to ${ctx.indexFile} (see summary)`,
-            });
-            ctx.linkHint = true;
+            const own = await fsx.readText(path.join(ctx.projectRoot, 'AGENTS.md')).catch(() => '');
+            if (own.includes(ctx.indexFile)) {
+                entries.push({ kind: 'skip', label: 'AGENTS.md', reason: `yours, already links ${ctx.indexFile}` });
+            } else {
+                entries.push({
+                    kind: 'warn',
+                    label: 'AGENTS.md',
+                    reason: `yours, left untouched. Add a line pointing to ${ctx.indexFile} (see summary)`,
+                });
+                ctx.linkHint = true;
+            }
         }
         return { entries, data: { decisions: [decision] } };
     },
