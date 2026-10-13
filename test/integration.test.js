@@ -98,6 +98,8 @@ test('idempotent: a second run changes nothing', () => {
     const r = run(root, ['--yes']); // agent comes from the manifest
     assert.equal(r.code, 0, r.err);
     assert.match(r.out, /Nothing to do/);
+    assert.doesNotMatch(r.out, /Skills are installed\./);
+    assert.doesNotMatch(r.out, /git add/);
     assert.deepEqual(snapshot(root), before);
 });
 

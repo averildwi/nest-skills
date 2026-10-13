@@ -105,10 +105,10 @@ function collectNotes(plan) {
 
 function printSummary(ctx, plan, summary) {
     const notes = collectNotes(plan);
-    ui.out();
-    ui.out(`  ${c.green(c.bold('Skills are installed.'))}`);
-
+    // The "nothing to do" path already printed its own message.
     if (summary.files.length) {
+        ui.out();
+        ui.out(`  ${c.green(c.bold('Skills are installed.'))}`);
         ui.section('Changed files');
         for (const f of summary.files) ui.out(`    ${KIND_STYLE[f.kind](f.path)}`);
     }
@@ -153,6 +153,10 @@ function printNotes(ctx, notes) {
 }
 
 function printNextSteps(ctx, summary) {
+    if (!summary.files.length) {
+        ui.out();
+        return;
+    }
     ui.section('Next steps');
     const tracked = [ctx.indexFile, ctx.skillsDir, MANIFEST_FILE];
     if (ctx.agent.claudeMd && ctx.nextFiles['CLAUDE.md']) tracked.splice(1, 0, 'CLAUDE.md');
@@ -160,7 +164,6 @@ function printNextSteps(ctx, summary) {
     ui.out(`       ${c.cyan(`git add ${tracked.join(' ')}`)}`);
     ui.out(`       ${c.cyan('git commit -m "chore: add agent skills"')}`);
     ui.out(`    ${c.cyan('2.')} Start a new ${ctx.agent.label} session in this folder so it picks up the skills.`);
-    if (!summary.files.length) ui.out(c.gray('    (Nothing was written this time.)'));
     ui.out();
 }
 
