@@ -48,9 +48,10 @@ test('argv: rejects unknown agent, command, flag and unsafe dir', () => {
     assert.throws(() => parseCliArgs(['--agent', 'cursor']), CliError);
     assert.throws(() => parseCliArgs(['remove']), CliError);
     assert.throws(() => parseCliArgs(['--nope']), CliError);
-    for (const bad of ['../outside', '/abs', 'C:/x', 'a/../../b', '']) {
+    for (const bad of ['../outside', '/abs', 'C:/x', 'a/../../b', '', '   ', '.', './', '.\\', './.', 'a/./b', '\\\\server\\share', 'node_modules/x', '.nest-skills-backup/x']) {
         assert.throws(() => parseCliArgs(['--dir', bad]), CliError, bad);
     }
+    assert.equal(parseCliArgs(['--dir', '.\\.agents\\\\skills\\']).dir, '.agents/skills');
 });
 
 test('hash ignores CRLF vs LF', () => {

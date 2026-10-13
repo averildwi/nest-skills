@@ -1,7 +1,7 @@
 const { parseArgs } = require('util');
 
 const { CliError } = require('./errors');
-const { AGENTS } = require('./config/agents');
+const { AGENTS, BACKUP_DIR } = require('./config/agents');
 
 const COMMANDS = ['install', 'update'];
 
@@ -57,10 +57,19 @@ function parseCliArgs(argv = process.argv.slice(2)) {
 
     let dir;
     if (v.dir !== undefined) {
-        dir = v.dir.trim().replace(/\\/g, '/').replace(/^\.\/+/, '').replace(/\/+$/, '');
-        if (!dir || dir.startsWith('/') || /^[a-z]:/i.test(dir) || dir.split('/').includes('..')) {
+        dir = v.dir.trim().replace(/\\/g, '/').replace(/\/{2,}/g, '/').replace(/^(\.\/)+/, '').replace(/\/+$/, '');
+        const segments = dir.split('/');
+        // "." would put the skill folders straight into the project root, next to src/.
+        const unsafe =
+            !dir ||
+            dir.startsWith('/') ||
+            /^[a-z]:/i.test(dir) ||
+            segments.some((s) => s === '.' || s === '..') ||
+            segments[0] === BACKUP_DIR ||
+            segments[0] === 'node_modules';
+        if (unsafe) {
             throw new CliError(`Invalid --dir "${v.dir}".`, {
-                hints: ['Use a path relative to the project root, inside the project, e.g. --dir .agents/skills'],
+                hints: ['Use a sub-folder of the project root, e.g. --dir .agents/skills'],
                 exitCode: 2,
             });
         }
