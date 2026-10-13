@@ -4,7 +4,7 @@ const path = require('path');
 const ui = require('./ui/output');
 const { colors: c } = require('./ui/colors');
 const { CliError } = require('./errors');
-const { AGENTS, MANIFEST_FILE } = require('./config/agents');
+const { AGENTS, MANIFEST_FILE, BACKUP_DIR } = require('./config/agents');
 const { TEMPLATES_DIR } = require('./utils/templates');
 const steps = require('./steps');
 
@@ -120,7 +120,12 @@ function printNotes(ctx, notes) {
     if (notes.edited.length) {
         ui.section('Kept your edits');
         for (const f of notes.edited) ui.out(`    ${c.yellow('!')} ${f}`);
-        ui.out(c.gray('    Re-run with --force to replace them with the bundled version (a .bak copy is kept).'));
+        ui.out(c.gray(`    Re-run with --force to replace them with the bundled version (old copy kept in ${BACKUP_DIR}/).`));
+    }
+    if (ctx.backups && ctx.backups.length) {
+        ui.section('Backups of replaced files');
+        for (const f of ctx.backups) ui.out(`    ${c.gray('-')} ${f}`);
+        ui.out(c.gray(`    ${BACKUP_DIR}/ ignores itself in git. Delete it once you no longer need the copies.`));
     }
     if (notes.foreign.length) {
         ui.section('Left your own files untouched');

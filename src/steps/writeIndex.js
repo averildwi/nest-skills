@@ -43,6 +43,6 @@ module.exports = {
     },
 
     async run(ctx, { decisions }) {
-        return { files: await applyDecisions(decisions, ctx.ui) };
+        return { files: await applyDecisions(decisions, ctx) };
     },
 };

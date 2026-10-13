@@ -40,5 +40,10 @@ const AGENTS = {
 /** Fallback index name when the project already has its own AGENTS.md. */
 const FALLBACK_INDEX = 'AGENTS.nest-skills.md';
 const MANIFEST_FILE = '.nest-skills.json';
+/**
+ * --force keeps the replaced file here, outside the skills folder, so the
+ * printed `git add <skillsDir>` never stages a backup and OpenCode never sees one.
+ */
+const BACKUP_DIR = '.nest-skills-backup';
 
-module.exports = { AGENTS, FALLBACK_INDEX, MANIFEST_FILE };
+module.exports = { AGENTS, FALLBACK_INDEX, MANIFEST_FILE, BACKUP_DIR };

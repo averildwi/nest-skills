@@ -57,9 +57,14 @@ npx @averildwi/nest-skills@latest update
 | missing | created | created | created |
 | same as bundled | skipped | skipped | skipped |
 | written by us, unedited, older | reported ("run update") | **refreshed** | refreshed |
-| written by us, **edited by you** | kept | kept | replaced, your copy in `.bak` |
-| **not written by us**: a skill file | kept | kept | replaced, your copy in `.bak` |
+| written by us, **edited by you** | kept | kept | replaced, your copy backed up |
+| **not written by us**: a skill file | kept | kept | replaced, your copy backed up |
 | **not written by us**: `AGENTS.md` / `CLAUDE.md` | kept | kept | **kept** |
+
+Backups go to `.nest-skills-backup/<timestamp>/<original path>`, never next to the skill
+(a stray `SKILL.md.bak` inside the skills folder would be committed with `git add <skillsDir>`).
+The backup folder contains a `.gitignore` with `*`, so git ignores it without any change to
+your own `.gitignore`. Delete it when you no longer need the copies.
 
 "Written by us" means the path and its hash are in `.nest-skills.json`. If you delete that
 file, every installed file counts as yours and will not be updated.

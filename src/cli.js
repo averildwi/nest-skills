@@ -98,7 +98,7 @@ function helpText(pkg) {
                          claude   -> .claude/skills + AGENTS.md + CLAUDE.md (imports AGENTS.md)
                          both     -> .claude/skills (read by both tools) + AGENTS.md + CLAUDE.md
     --dir <path>       Install skills somewhere else (relative to the project root)
-    --force            Overwrite files you edited or wrote yourself (a .bak copy is kept)
+    --force            Overwrite files you edited or wrote yourself (old copy kept in .nest-skills-backup/)
     -y, --yes          Skip prompts and the confirmation
     --dry-run          Show the plan without writing anything
     --no-color         Disable coloured output

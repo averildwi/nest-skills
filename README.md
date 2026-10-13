@@ -55,7 +55,7 @@ npx @averildwi/nest-skills update [options]
 
 -a, --agent <name>   opencode | claude | both
 --dir <path>         install skills in another folder (relative, inside the project)
---force              overwrite files you edited (keeps <file>.bak)
+--force              overwrite files you edited (old copy kept in .nest-skills-backup/)
 -y, --yes            no prompts, no confirmation
 --dry-run            show the plan only
 --no-color           plain output
@@ -70,9 +70,11 @@ npx @averildwi/nest-skills update [options]
   - Own `AGENTS.md`: the index goes to `AGENTS.nest-skills.md` and the CLI prints the line to add.
   - Own `CLAUDE.md`: left as is; the CLI tells you to add `@AGENTS.md` (or the fallback name).
 - A skill file with the same name that you wrote yourself is kept; `--force` replaces it
-  and saves yours as `SKILL.md.bak`.
+  and saves yours under `.nest-skills-backup/<timestamp>/`.
 - A file nest-skills wrote and **you edited** is kept by `install` and `update`.
-  `--force` replaces it and saves your version as `<file>.bak`.
+  `--force` replaces it and saves your version under `.nest-skills-backup/<timestamp>/`.
+  That folder sits outside the skills folder (the agent never loads a backup) and
+  contains its own `.gitignore`, so it is never committed by accident.
 - Running the command twice changes nothing.
 - CRLF vs LF does not count as an edit.
 

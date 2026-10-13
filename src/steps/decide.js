@@ -1,6 +1,20 @@
 const path = require('path');
 
 const fsx = require('../utils/fsHelpers');
+const { BACKUP_DIR } = require('../config/agents');
+
+/**
+ * Folder for the --force backups of this run, e.g.
+ * .nest-skills-backup/2026-10-13T08-30-00. Outside the skills folder so the
+ * agent never loads a backup and `git add <skillsDir>` never stages one.
+ */
+function backupRoot(ctx) {
+    if (!ctx.backupRoot) {
+        const stamp = new Date().toISOString().replace(/\.\d+Z$/, '').replace(/:/g, '-');
+        ctx.backupRoot = `${BACKUP_DIR}/${stamp}`;
+    }
+    return ctx.backupRoot;
+}
 
 /**
  * Decides what to do with one managed file. Pure: reads, never writes.
@@ -8,9 +22,9 @@ const fsx = require('../utils/fsHelpers');
  * States, with `recorded` = hash stored in .nest-skills.json at the last write:
  *   missing                                  -> create
  *   current == desired                       -> skip (up to date)
- *   not recorded (the user's own file)       -> skip; --force replaces it with a .bak,
+ *   not recorded (the user's own file)       -> skip; --force replaces it (backup kept),
  *                                               unless options.protect (AGENTS.md / CLAUDE.md)
- *   current != recorded (edited by the user) -> skip; --force overwrites and keeps a .bak
+ *   current != recorded (edited by the user) -> skip; --force overwrites it (backup kept)
  *   current == recorded, desired is newer    -> install: skip ("run update"); update: overwrite
  *
  * Returns { action, entry, recordHash } where `recordHash` is what the new
@@ -44,7 +58,7 @@ async function decideInner(ctx, relPath, desired, options) {
                 abs,
                 relPath,
                 desired,
-                entry: { kind: 'modify', label: relPath, reason: 'not written by nest-skills, overwritten by --force, backup .bak' },
+                entry: { kind: 'modify', label: relPath, reason: `not written by nest-skills, overwritten by --force, backup in ${BACKUP_DIR}/` },
                 recordHash: desiredHash,
             };
         }
@@ -70,7 +84,7 @@ async function decideInner(ctx, relPath, desired, options) {
                 abs,
                 relPath,
                 desired,
-                entry: { kind: 'modify', label: relPath, reason: 'edited by you, overwritten by --force, backup .bak' },
+                entry: { kind: 'modify', label: relPath, reason: `edited by you, overwritten by --force, backup in ${BACKUP_DIR}/` },
                 recordHash: desiredHash,
             };
         }
@@ -95,16 +109,25 @@ async function decideInner(ctx, relPath, desired, options) {
 }
 
 /** Applies the decisions of one step. Returns the changed files for the summary. */
-async function applyDecisions(decisions, ui) {
+async function applyDecisions(decisions, ctx) {
     const files = [];
     for (const d of decisions) {
         if (d.action !== 'write') continue;
-        if (d.backup) await fsx.writeText(`${d.abs}.bak`, await fsx.readText(d.abs));
+        if (d.backup) await writeBackup(ctx, d);
         await fsx.writeText(d.abs, d.desired);
-        ui.success(`${d.entry.kind === 'create' ? 'Created' : 'Updated'} ${d.relPath}`);
+        ctx.ui.success(`${d.entry.kind === 'create' ? 'Created' : 'Updated'} ${d.relPath}`);
         files.push({ kind: d.entry.kind, path: d.relPath });
     }
     return files;
+}
+
+async function writeBackup(ctx, d) {
+    const relBackup = `${backupRoot(ctx)}/${d.relPath}`;
+    // Ignores the whole backup folder without touching the project's .gitignore.
+    const ignore = path.join(ctx.projectRoot, BACKUP_DIR, '.gitignore');
+    if (!(await fsx.exists(ignore))) await fsx.writeText(ignore, '*\n');
+    await fsx.writeText(path.join(ctx.projectRoot, relBackup), await fsx.readText(d.abs));
+    (ctx.backups || (ctx.backups = [])).push(relBackup);
 }
 
 /** Remembers what the manifest step must store. */

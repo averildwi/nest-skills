@@ -45,6 +45,27 @@ function snapshot(root) {
 const read = (root, rel) => fs.readFileSync(path.join(root, rel), 'utf8');
 const exists = (root, rel) => fs.existsSync(path.join(root, rel));
 
+/** Backups of `rel` across all runs, oldest first. */
+function backups(root, rel) {
+    const dir = path.join(root, '.nest-skills-backup');
+    if (!fs.existsSync(dir)) return [];
+    return fs
+        .readdirSync(dir, { withFileTypes: true })
+        .filter((e) => e.isDirectory())
+        .map((e) => e.name)
+        .sort()
+        .map((stamp) => `.nest-skills-backup/${stamp}/${rel}`)
+        .filter((f) => exists(root, f));
+}
+
+function assertBackedUp(root, rel, content) {
+    const found = backups(root, rel);
+    assert.equal(found.length, 1, `one backup of ${rel}`);
+    assert.equal(read(root, found[0]), content);
+    assert.equal(read(root, '.nest-skills-backup/.gitignore'), '*\n');
+    assert.ok(!exists(root, `${rel}.bak`), 'no .bak next to the file');
+}
+
 test('opencode: installs 7 skills + AGENTS.md pointing at .opencode/skills, no CLAUDE.md', () => {
     const root = nestProject();
     const r = run(root, ['--agent', 'opencode', '--yes']);
@@ -118,7 +139,7 @@ test('user CLAUDE.md that already imports the index is accepted silently', () =>
     assert.equal(read(root, 'CLAUDE.md'), '@AGENTS.md\n\nMy notes\n');
 });
 
-test('a pre-existing skill file of the user is kept; --force replaces it with a .bak', () => {
+test('a pre-existing skill file of the user is kept; --force replaces it with a backup outside the skills folder', () => {
     const root = nestProject({ '.opencode/skills/nest-prisma/SKILL.md': 'my own prisma rules\n' });
     const r = run(root, ['--agent', 'opencode', '--yes']);
     assert.match(r.out, /use --force to replace it/);
@@ -126,13 +147,15 @@ test('a pre-existing skill file of the user is kept; --force replaces it with a 
     assert.ok(exists(root, '.opencode/skills/nest-testing/SKILL.md'));
     assert.ok(!('.opencode/skills/nest-prisma/SKILL.md' in JSON.parse(read(root, '.nest-skills.json')).files));
 
-    assert.equal(run(root, ['--yes', '--force']).code, 0);
-    assert.equal(read(root, '.opencode/skills/nest-prisma/SKILL.md.bak'), 'my own prisma rules\n');
+    const forced = run(root, ['--yes', '--force']);
+    assert.equal(forced.code, 0, forced.err);
+    assertBackedUp(root, '.opencode/skills/nest-prisma/SKILL.md', 'my own prisma rules\n');
+    assert.match(forced.out, /Backups of replaced files/);
     assert.match(read(root, '.opencode/skills/nest-prisma/SKILL.md'), /^---\nname: nest-prisma\n/);
     assert.ok('.opencode/skills/nest-prisma/SKILL.md' in JSON.parse(read(root, '.nest-skills.json')).files);
 });
 
-test('edited skill: install and update keep it; --force replaces it with a .bak', () => {
+test('edited skill: install and update keep it; --force replaces it with a backup', () => {
     const root = nestProject();
     run(root, ['--agent', 'opencode', '--yes']);
     const file = '.opencode/skills/nest-testing/SKILL.md';
@@ -146,7 +169,7 @@ test('edited skill: install and update keep it; --force replaces it with a .bak'
 
     const forced = run(root, ['update', '--yes', '--force']);
     assert.equal(forced.code, 0, forced.err);
-    assert.equal(read(root, `${file}.bak`), edited);
+    assertBackedUp(root, file, edited);
     assert.ok(!read(root, file).includes('## Local addition'));
 });
 
