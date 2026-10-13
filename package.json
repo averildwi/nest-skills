@@ -1,0 +1,35 @@
+{
+  "name": "@averildwi/nest-skills",
+  "version": "0.1.0",
+  "description": "Install Everill's NestJS + Prisma coding standards as agent skills (OpenCode / Claude Code) plus an AGENTS.md index.",
+  "main": "bin/cli.js",
+  "bin": {
+    "nest-skills": "bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "templates"
+  ],
+  "scripts": {
+    "test": "node --test test/unit.test.js test/integration.test.js"
+  },
+  "keywords": [
+    "nestjs",
+    "prisma",
+    "agent-skills",
+    "agents-md",
+    "opencode",
+    "claude-code",
+    "cli"
+  ],
+  "author": "averildwi",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "inquirer": "^9.0.0"
+  }
+}
