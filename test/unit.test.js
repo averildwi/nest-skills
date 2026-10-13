@@ -112,11 +112,22 @@ test('decide: identical file (even with CRLF) is skipped', async () => {
     assert.equal(d.entry.reason, 'up to date');
 });
 
-test('decide: a file nest-skills never wrote is never overwritten, even with --force', async () => {
-    const d = await decide({ force: true }, 'AGENTS.md', 'ours', 'theirs');
+test('decide: a file nest-skills never wrote is kept; --force adopts it with a backup', async () => {
+    const kept = await decide({}, '.opencode/skills/x/SKILL.md', 'ours', 'theirs');
+    assert.equal(kept.action, 'none');
+    assert.equal(kept.foreign, true);
+    assert.equal(kept.recordHash, undefined);
+    const forced = await decide({ force: true }, '.opencode/skills/x/SKILL.md', 'ours', 'theirs');
+    assert.equal(forced.action, 'write');
+    assert.equal(forced.backup, true);
+});
+
+test('decide: a protected file of the user (AGENTS.md, CLAUDE.md) is never overwritten, even with --force', async () => {
+    const root = tmp();
+    fs.writeFileSync(path.join(root, 'AGENTS.md'), 'theirs');
+    const d = await decideFile({ projectRoot: root, command: 'update', force: true, manifest: null }, 'AGENTS.md', 'ours', { protect: true });
     assert.equal(d.action, 'none');
     assert.equal(d.foreign, true);
-    assert.equal(d.recordHash, undefined);
 });
 
 test('decide: user-edited file is kept, and kept tracked with the old hash', async () => {

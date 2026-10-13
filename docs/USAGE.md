@@ -58,7 +58,8 @@ npx @averildwi/nest-skills@latest update
 | same as bundled | skipped | skipped | skipped |
 | written by us, unedited, older | reported ("run update") | **refreshed** | refreshed |
 | written by us, **edited by you** | kept | kept | replaced, your copy in `.bak` |
-| **not written by us** | kept | kept | kept |
+| **not written by us**: a skill file | kept | kept | replaced, your copy in `.bak` |
+| **not written by us**: `AGENTS.md` / `CLAUDE.md` | kept | kept | **kept** |
 
 "Written by us" means the path and its hash are in `.nest-skills.json`. If you delete that
 file, every installed file counts as yours and will not be updated.

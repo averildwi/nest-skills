@@ -65,10 +65,12 @@ npx @averildwi/nest-skills update [options]
 
 ## Your files are safe
 
-- A file that exists but was **not written by nest-skills** (your own `AGENTS.md`,
-  `CLAUDE.md`, or a skill with the same name) is **never** overwritten, not even with `--force`.
+- Your own **`AGENTS.md` / `CLAUDE.md`** (not written by nest-skills) are **never** overwritten,
+  not even with `--force`.
   - Own `AGENTS.md`: the index goes to `AGENTS.nest-skills.md` and the CLI prints the line to add.
   - Own `CLAUDE.md`: left as is; the CLI tells you to add `@AGENTS.md` (or the fallback name).
+- A skill file with the same name that you wrote yourself is kept; `--force` replaces it
+  and saves yours as `SKILL.md.bak`.
 - A file nest-skills wrote and **you edited** is kept by `install` and `update`.
   `--force` replaces it and saves your version as `<file>.bak`.
 - Running the command twice changes nothing.

@@ -118,11 +118,18 @@ test('user CLAUDE.md that already imports the index is accepted silently', () =>
     assert.equal(read(root, 'CLAUDE.md'), '@AGENTS.md\n\nMy notes\n');
 });
 
-test('a pre-existing skill file of the user is kept', () => {
+test('a pre-existing skill file of the user is kept; --force replaces it with a .bak', () => {
     const root = nestProject({ '.opencode/skills/nest-prisma/SKILL.md': 'my own prisma rules\n' });
-    run(root, ['--agent', 'opencode', '--yes']);
+    const r = run(root, ['--agent', 'opencode', '--yes']);
+    assert.match(r.out, /use --force to replace it/);
     assert.equal(read(root, '.opencode/skills/nest-prisma/SKILL.md'), 'my own prisma rules\n');
     assert.ok(exists(root, '.opencode/skills/nest-testing/SKILL.md'));
+    assert.ok(!('.opencode/skills/nest-prisma/SKILL.md' in JSON.parse(read(root, '.nest-skills.json')).files));
+
+    assert.equal(run(root, ['--yes', '--force']).code, 0);
+    assert.equal(read(root, '.opencode/skills/nest-prisma/SKILL.md.bak'), 'my own prisma rules\n');
+    assert.match(read(root, '.opencode/skills/nest-prisma/SKILL.md'), /^---\nname: nest-prisma\n/);
+    assert.ok('.opencode/skills/nest-prisma/SKILL.md' in JSON.parse(read(root, '.nest-skills.json')).files);
 });
 
 test('edited skill: install and update keep it; --force replaces it with a .bak', () => {

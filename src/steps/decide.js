@@ -8,18 +8,19 @@ const fsx = require('../utils/fsHelpers');
  * States, with `recorded` = hash stored in .nest-skills.json at the last write:
  *   missing                                  -> create
  *   current == desired                       -> skip (up to date)
- *   not recorded (the user's own file)       -> skip, never overwritten (even with --force)
+ *   not recorded (the user's own file)       -> skip; --force replaces it with a .bak,
+ *                                               unless options.protect (AGENTS.md / CLAUDE.md)
  *   current != recorded (edited by the user) -> skip; --force overwrites and keeps a .bak
  *   current == recorded, desired is newer    -> install: skip ("run update"); update: overwrite
  *
  * Returns { action, entry, recordHash } where `recordHash` is what the new
  * manifest should store for this path (undefined = do not track it).
  */
-async function decideFile(ctx, relPath, desired) {
-    return { relPath, ...(await decideInner(ctx, relPath, desired)) };
+async function decideFile(ctx, relPath, desired, options = {}) {
+    return { relPath, ...(await decideInner(ctx, relPath, desired, options)) };
 }
 
-async function decideInner(ctx, relPath, desired) {
+async function decideInner(ctx, relPath, desired, options) {
     const abs = path.join(ctx.projectRoot, relPath);
     const desiredHash = fsx.hash(desired);
     const recorded = ctx.manifest ? ctx.manifest.files[relPath] : undefined;
@@ -34,9 +35,28 @@ async function decideInner(ctx, relPath, desired) {
     }
 
     if (recorded === undefined) {
+        // Skill files may be adopted with --force (backup kept). The user's own
+        // AGENTS.md / CLAUDE.md are never overwritten; those steps pass protect.
+        if (ctx.force && !options.protect) {
+            return {
+                action: 'write',
+                backup: true,
+                abs,
+                relPath,
+                desired,
+                entry: { kind: 'modify', label: relPath, reason: 'not written by nest-skills, overwritten by --force, backup .bak' },
+                recordHash: desiredHash,
+            };
+        }
         return {
             action: 'none',
-            entry: { kind: 'warn', label: relPath, reason: 'exists and was not written by nest-skills, left untouched' },
+            entry: {
+                kind: 'warn',
+                label: relPath,
+                reason: options.protect
+                    ? 'exists and was not written by nest-skills, left untouched'
+                    : 'exists and was not written by nest-skills, left untouched (use --force to replace it)',
+            },
             recordHash: undefined,
             foreign: true,
         };

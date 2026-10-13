@@ -28,7 +28,7 @@ module.exports = {
     async plan(ctx) {
         ctx.indexFile = await resolveIndexFile(ctx);
         const desired = renderAgentsMd(readTemplate('AGENTS.md', ctx.templatesDir), ctx);
-        const decision = await decideFile(ctx, ctx.indexFile, desired);
+        const decision = await decideFile(ctx, ctx.indexFile, desired, { protect: true });
         record(ctx, [decision]);
         const entries = [decision.entry];
         if (ctx.indexFile !== 'AGENTS.md') {
