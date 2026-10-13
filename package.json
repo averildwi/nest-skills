@@ -9,7 +9,8 @@
   "files": [
     "bin",
     "src",
-    "templates"
+    "templates",
+    "docs"
   ],
   "scripts": {
     "test": "node --test test/unit.test.js test/integration.test.js"
@@ -25,6 +26,17 @@
   ],
   "author": "averildwi",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/averildwi/nest-skills.git"
+  },
+  "bugs": {
+    "url": "https://github.com/averildwi/nest-skills/issues"
+  },
+  "homepage": "https://github.com/averildwi/nest-skills#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=18.17"
   },
