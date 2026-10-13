@@ -156,6 +156,19 @@ test('decide: unedited old version -> install reports, update overwrites', async
     assert.equal(onUpdate.recordHash, hash('v2'));
 });
 
+test('decide: a changed agent refreshes config-rendered files on install, not skills', async () => {
+    const manifest = { files: { 'a.md': hash('v1') } };
+    const skill = await decide({ manifest, configChanged: true }, 'a.md', 'v2', 'v1');
+    assert.equal(skill.action, 'none');
+    assert.equal(skill.outdated, true);
+
+    const root = tmp();
+    fs.writeFileSync(path.join(root, 'AGENTS.md'), 'v1');
+    const ctx = { projectRoot: root, command: 'install', force: false, configChanged: true, manifest: { files: { 'AGENTS.md': hash('v1') } } };
+    const index = await decideFile(ctx, 'AGENTS.md', 'v2', { protect: true, followsConfig: true });
+    assert.equal(index.action, 'write');
+});
+
 test('manifest keeps previously tracked files and adds new ones', () => {
     const m = buildManifest({
         pkg: { name: '@averildwi/nest-skills', version: '9.9.9' },

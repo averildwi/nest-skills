@@ -96,7 +96,11 @@ async function decideInner(ctx, relPath, desired, options) {
         };
     }
 
-    if (ctx.command === 'update' || ctx.configChanged) {
+    // options.followsConfig: the content is rendered from the agent/folder
+    // (AGENTS.md, CLAUDE.md). Skills are identical for every agent, so a
+    // changed agent alone is no reason to refresh them on `install`.
+    const configRefresh = ctx.configChanged && options.followsConfig;
+    if (ctx.command === 'update' || configRefresh) {
         const reason = ctx.command === 'update' ? 'newer version' : 'agent or folder changed';
         return { action: 'write', abs, relPath, desired, entry: { kind: 'modify', label: relPath, reason }, recordHash: desiredHash };
     }

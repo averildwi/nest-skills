@@ -254,6 +254,25 @@ test('switching agent rewrites unedited AGENTS.md and warns about the old skills
     assert.equal(JSON.parse(read(root, '.nest-skills.json')).agent, 'claude');
 });
 
+test('switching claude -> both keeps the shared folder and does not touch skills', () => {
+    const root = nestProject();
+    run(root, ['--agent', 'claude', '--yes']);
+    // An older unedited skill from a previous version.
+    const file = '.claude/skills/git-workflow/SKILL.md';
+    const old = '---\nname: git-workflow\ndescription: old\n---\nold body\n';
+    fs.writeFileSync(path.join(root, file), old);
+    const manifest = JSON.parse(read(root, '.nest-skills.json'));
+    manifest.files[file] = require('../src/utils/fsHelpers').hash(old);
+    fs.writeFileSync(path.join(root, '.nest-skills.json'), JSON.stringify(manifest));
+
+    const r = run(root, ['--agent', 'both', '--yes']);
+    assert.equal(r.code, 0, r.err);
+    assert.equal(read(root, file), old, 'install does not refresh skills just because the agent changed');
+    assert.match(r.out, /newer version available/);
+    assert.doesNotMatch(r.out, /Old skills folder still present/);
+    assert.equal(JSON.parse(read(root, '.nest-skills.json')).agent, 'both');
+});
+
 test('--help and --version', () => {
     const root = nestProject();
     assert.match(run(root, ['--help']).out, /Usage/);

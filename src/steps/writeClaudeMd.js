@@ -17,7 +17,7 @@ module.exports = {
     async plan(ctx) {
         if (!ctx.agent.claudeMd) return { entries: [] };
         const desired = renderClaudeMd(readTemplate('CLAUDE.md', ctx.templatesDir), ctx);
-        const decision = await decideFile(ctx, 'CLAUDE.md', desired, { protect: true });
+        const decision = await decideFile(ctx, 'CLAUDE.md', desired, { protect: true, followsConfig: true });
         record(ctx, [decision]);
 
         if (decision.foreign) {
