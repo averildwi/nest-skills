@@ -27,7 +27,7 @@ description: Use when writing or reviewing unit tests for NestJS services, guard
 8. Use `describe('<Service>.<method>', ...)` with one `describe` per public method.
 9. Never commit a boilerplate spec (`it('should be defined')` with no mocks). If `nest g` creates one, replace it with real tests or delete it.
 10. Run `npm run test` before committing (see `git-workflow`). A red or failing-to-compile spec blocks the commit.
-11. If the Prisma client is generated with `.js` import suffixes (Prisma 7 `prisma-client`), Jest needs `"moduleNameMapper": { "^(\\.{1,2}/.*)\\.js$": "$1" }` in its config. Otherwise it fails with "Cannot find module './internal/class.js'". If it is missing, add it in its **own** commit before the feature: `chore(test): map .js imports for the prisma client in jest`.
+11. If the Prisma client is generated with `.js` import suffixes (Prisma 7 `prisma-client`), Jest needs `"moduleNameMapper": { "^(\\.{1,2}/.*)\\.js$": "$1" }`. `@averildwi/nest-prisma` 3.0.0+ adds it to `package.json` and `test/jest-e2e.json` automatically. In an older project where it is missing, specs fail with "Cannot find module './internal/class.js'" — add the mapping in its **own** commit before the feature: `chore(test): map .js imports for the prisma client in jest`.
 
 ## Good example
 
