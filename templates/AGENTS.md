@@ -26,7 +26,7 @@ If a rule here conflicts with your general habits, the skill wins.
 5. `nest-auth-and-security`: guards, roles, `:id` pipes.
 6. `nest-response-and-errors`: return markers and exceptions.
 7. `nest-testing`: service spec.
-8. `git-workflow`: lint the changed files, test, build when rule 5 requires it, stage specific files, commit, report the hash.
+8. `git-workflow`: lint (whole project), test, build when rule 5 requires it, stage specific files, commit, report the hash.
 
 ## Global rules (always apply)
 
@@ -48,14 +48,17 @@ If a rule here conflicts with your general habits, the skill wins.
    - Services returning `{ message, data }`.
    - `prisma migrate reset`, `db push --accept-data-loss` / `--force-reset` without explicit approval, or a workaround when Prisma refuses.
 4. New projects use strict TypeScript: `"strict": true` (at minimum `"noImplicitAny": true`) and ESLint `@typescript-eslint/no-explicit-any: "warn"`. Do not retrofit strictness into an existing project unless asked.
-5. Before saying you are done: you ran lint on the files you changed and the tests yourself, and they pass. Run `npm run build` too when `git-workflow` rule 5 requires it (Prisma schema, `tsconfig*.json`, `nest-cli.json`, `package.json`, `main.ts`). Then commit per `git-workflow`.
+5. Before saying you are done: you ran lint (whole project) and the tests yourself, and they pass. Run `npm run build` too when `git-workflow` rule 5 requires it (Prisma schema, `tsconfig*.json`, `nest-cli.json`, `package.json`, `main.ts`). Then commit per `git-workflow`.
 6. Never read, print or commit `.env*` contents or secrets.
 
 ## When the existing code differs from these skills
 
-The skills describe the **target** standard. Generated scaffold code (`src/common/`, `src/prisma/`)
-or older code in this repository may still differ, for example `page?: number` in `PaginationDto`,
-`string[]` roles, `any` in interceptors, `FRONTEND_URL` defaulting to `'*'`, or a missing `AuthUser`.
+The skills describe the **target** standard. `nest-common` and `nest-prisma` from
+version 3.0.0 generate code that already follows it. Code in this repository may
+still differ when it was written before that, or by hand: `page?: number` in
+`PaginationDto`, `string[]` roles, `any` in interceptors, `FRONTEND_URL`
+defaulting to `'*'`, a missing `AuthUser`, or a `Prisma` import from
+`@prisma/client`.
 
 - **Code you write** follows the skills.
 - **When your code calls existing code**, adapt at the call site instead of breaking the build
@@ -63,4 +66,5 @@ or older code in this repository may still differ, for example `page?: number` i
 - **Do not rewrite existing shared code** as a side effect of a feature. If it blocks you (a type
   error, a security problem such as CORS `'*'`), tell the user what differs and propose a separate
   `refactor(common)` / `fix(common)` commit. Do it only after the user agrees.
-- Pre-existing lint errors in files you did not touch never block your commit (`git-workflow` rule 6).
+- Pre-existing lint errors in files you did not touch must be reported; fixing them is a separate
+  commit (`git-workflow` rule 6).

@@ -13,14 +13,16 @@ npx @averildwi/nest-skills --agent opencode
 ## Recommended order on a new project
 
 ```bash
-npx @nestjs/cli new my-app --strict
+npx @nestjs/cli@11 new my-app --strict
 cd my-app
-npx @averildwi/nest-prisma --db postgres --output root
+npx @averildwi/nest-prisma --db postgres     # client in generated/prisma (root)
 npx @averildwi/nest-common
 npx @averildwi/nest-skills --agent opencode   # or claude / both
 ```
 
-Commit after each tool, on its own (see the `git-workflow` skill).
+Commit after each tool, on its own (see the `git-workflow` skill). The standard
+targets Nest 11 (CommonJS + Jest + ESLint); pin `@nestjs/cli@11` when creating
+the project.
 
 ## What gets installed
 
