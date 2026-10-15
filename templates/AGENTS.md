@@ -51,14 +51,28 @@ If a rule here conflicts with your general habits, the skill wins.
 5. Before saying you are done: you ran lint (whole project) and the tests yourself, and they pass. Run `npm run build` too when `git-workflow` rule 5 requires it (Prisma schema, `tsconfig*.json`, `nest-cli.json`, `package.json`, `main.ts`). Then commit per `git-workflow`.
 6. Never read, print or commit `.env*` contents or secrets.
 
+## Scaffolds in this project
+
+If this repository has a `src/common/` folder it comes from
+`@averildwi/nest-common`, and `src/prisma/` comes from `@averildwi/nest-prisma`
+(version 3.0.0+ follows these skills). Treat their files as the standard:
+
+- Use what they already provide (`AppConfigModule`, `HashingService`,
+  `JwtAuthGuard`/`RolesGuard`, `GlobalExceptionFilter`/`PrismaExceptionFilter`,
+  `LoggerInterceptor`/`TransformInterceptor`, `createValidationPipe`,
+  `PaginationDto`, `paginate`, `AuthUser`, `PrismaService`). Do not build a
+  parallel or "improved" copy of the same thing.
+- Do not re-scaffold, move or delete these files as a side effect of a feature.
+  If a module is missing, tell the user to run `npx @averildwi/nest-common` /
+  `npx @averildwi/nest-prisma` instead of hand-writing it.
+
 ## When the existing code differs from these skills
 
-The skills describe the **target** standard. `nest-common` and `nest-prisma` from
-version 3.0.0 generate code that already follows it. Code in this repository may
-still differ when it was written before that, or by hand: `page?: number` in
-`PaginationDto`, `string[]` roles, `any` in interceptors, `FRONTEND_URL`
-defaulting to `'*'`, a missing `AuthUser`, or a `Prisma` import from
-`@prisma/client`.
+The skills describe the **target** standard. The scaffolds above generate code
+that already follows it. Code in this repository may still differ when it was
+written before v3.0.0, or by hand: `page?: number` in `PaginationDto`,
+`string[]` roles, `any` in interceptors, `FRONTEND_URL` defaulting to `'*'`,
+a missing `AuthUser`, or a `Prisma` import from `@prisma/client`.
 
 - **Code you write** follows the skills.
 - **When your code calls existing code**, adapt at the call site instead of breaking the build
