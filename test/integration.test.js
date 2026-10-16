@@ -11,6 +11,9 @@ const path = require('path');
 
 const BIN = path.join(__dirname, '..', 'bin', 'cli.js');
 const SKILLS = fs.readdirSync(path.join(__dirname, '..', 'templates', 'skills')).sort();
+const { listSkillFiles } = require('../src/utils/templates');
+/** Every shipped skill file, e.g. "nest-auth-and-security/references/test-recipes.md". */
+const SKILL_FILES = SKILLS.flatMap((s) => listSkillFiles(s).map((f) => `${s}/${f}`));
 
 function nestProject(extra = {}) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nsk-int-'));
@@ -72,12 +75,34 @@ test('opencode: installs 7 skills + AGENTS.md pointing at .opencode/skills, no C
     assert.equal(r.code, 0, r.err);
     for (const s of SKILLS) assert.ok(exists(root, `.opencode/skills/${s}/SKILL.md`), s);
     assert.equal(SKILLS.length, 7);
+    for (const f of SKILL_FILES) assert.ok(exists(root, `.opencode/skills/${f}`), f);
     assert.match(read(root, 'AGENTS.md'), /`\.opencode\/skills\/<name>\/SKILL\.md`/);
     assert.ok(!read(root, 'AGENTS.md').includes('{{'));
     assert.ok(!exists(root, 'CLAUDE.md'));
     const m = JSON.parse(read(root, '.nest-skills.json'));
     assert.equal(m.agent, 'opencode');
-    assert.equal(Object.keys(m.files).length, 8);
+    // Every skill file (SKILL.md and references) plus AGENTS.md is tracked.
+    assert.equal(Object.keys(m.files).length, SKILL_FILES.length + 1);
+});
+
+const REFERENCE_FILES = SKILL_FILES.filter((f) => !f.endsWith('/SKILL.md'));
+
+test('supporting files of a skill (references/) are installed, listed in --dry-run and edit-protected', { skip: REFERENCE_FILES.length === 0 && 'no skill ships references yet' }, () => {
+    const ref = REFERENCE_FILES[0];
+
+    const dry = run(nestProject(), ['--agent', 'opencode', '--dry-run']);
+    assert.equal(dry.code, 0, dry.err);
+    assert.ok(dry.out.includes(`.opencode/skills/${ref}`), 'dry run lists the reference file');
+
+    const root = nestProject();
+    run(root, ['--agent', 'opencode', '--yes']);
+    const file = `.opencode/skills/${ref}`;
+    assert.equal(read(root, file), fs.readFileSync(path.join(__dirname, '..', 'templates', 'skills', ref), 'utf8').replace(/\r\n/g, '\n'));
+    const edited = `${read(root, file)}\nlocal note\n`;
+    fs.writeFileSync(path.join(root, file), edited);
+    const upd = run(root, ['update', '--yes']);
+    assert.equal(upd.code, 0, upd.err);
+    assert.equal(read(root, file), edited);
 });
 
 test('claude and both: .claude/skills + thin CLAUDE.md importing AGENTS.md', () => {

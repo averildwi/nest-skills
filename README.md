@@ -34,6 +34,10 @@ the project.
 
 Plus `.nest-skills.json`, which records a hash of every file the tool wrote. Commit it.
 
+A skill folder may also ship supporting files next to `SKILL.md` (for example
+`nest-auth-and-security/references/*.md`). They are installed and edit-protected the same way;
+the agent opens them only when `SKILL.md` points to them.
+
 Skills:
 
 | Skill | Covers |
