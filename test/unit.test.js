@@ -78,12 +78,21 @@ test('templates: skill files list SKILL.md first, then supporting files with for
         assert.equal(files[0], 'SKILL.md');
         for (const f of files) assert.doesNotMatch(f, /\\/);
     }
-    // Every reference file that SKILL.md links to exists, and every shipped reference is linked.
+    // A SKILL.md links a reference file by a bare path (its own folder) or with a
+    // skill-name prefix (cross-skill). Every linked file must be shipped in the
+    // owning skill's folder, and every shipped reference must be linked by its own SKILL.md.
+    const shipped = new Map(EXPECTED_SKILLS.map((n) => [n, listSkillFiles(n).filter((f) => f !== 'SKILL.md')]));
     for (const name of EXPECTED_SKILLS) {
         const src = readTemplate(`skills/${name}/SKILL.md`);
-        const linked = new Set([...src.matchAll(/references\/[a-z0-9-]+\.md/g)].map((m) => m[0]));
-        const shipped = listSkillFiles(name).filter((f) => f !== 'SKILL.md');
-        assert.deepEqual([...linked].sort(), shipped, `${name}: references linked from SKILL.md match the shipped files`);
+        const linkedOwn = new Set();
+        for (const m of src.matchAll(/([a-z0-9-]+\/)?(references\/[a-z0-9-]+\.md)/g)) {
+            const owner = m[1] ? m[1].slice(0, -1) : name;
+            assert.ok(shipped.get(owner)?.includes(m[2]), `${name}: SKILL.md links "${owner}/${m[2]}" but it is not shipped`);
+            if (owner === name) linkedOwn.add(m[2]);
+        }
+        for (const f of shipped.get(name)) {
+            assert.ok(linkedOwn.has(f), `${name}: ${f} is shipped but not linked from SKILL.md`);
+        }
     }
 });
 

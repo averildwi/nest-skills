@@ -40,7 +40,7 @@ description: Use when creating a new NestJS feature module, adding files, naming
 10. In order: `app.set('trust proxy', TRUST_PROXY_HOPS)`, `setGlobalPrefix('api')`, CORS, `useGlobalPipes(createValidationPipe())`, `useGlobalInterceptors(new LoggerInterceptor(), new TransformInterceptor())`, `useGlobalFilters(new GlobalExceptionFilter(), new PrismaExceptionFilter())`, Swagger, then `listen`. Register them with `new` (not `APP_*`). The exception is `ThrottlerGuard`, which is `APP_GUARD` in `app.module.ts`.
     - Create the app as `NestFactory.create<NestExpressApplication>(AppModule)` so `app.set` is typed.
     - `trust proxy` is the **number of reverse proxies** in front of the app (`TRUST_PROXY_HOPS` in the Joi schema, default `0`). Never `true`. Details and why: `nest-auth-and-security` rule 16.
-    - The filter order is not cosmetic: register `GlobalExceptionFilter` **before** `PrismaExceptionFilter`, because Nest tries the **last** registered first. Reversed, a P2002 becomes 500. There is a two-way test for it in `nest-auth-and-security` → `references/test-recipes.md`.
+    - The filter order is not cosmetic: register `GlobalExceptionFilter` **before** `PrismaExceptionFilter`, because Nest tries the **last** registered first. Reversed, a P2002 becomes 500. There is a two-way test for it in `nest-auth-and-security/references/test-recipes.md`.
 
 ### Swagger
 
