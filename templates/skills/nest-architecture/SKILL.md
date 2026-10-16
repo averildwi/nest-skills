@@ -14,8 +14,9 @@ description: Use when creating a new NestJS feature module, adding files, naming
 ### Structure
 
 1. Infrastructure shared by many features lives in `src/common/<kind>/`:
-   `config/`, `decorators/`, `dto/`, `filters/`, `guards/`, `hashing/`, `helpers/`, `interceptors/`, `pipes/`, `types/`.
+   `config/`, `decorators/`, `dto/`, `filters/`, `guards/`, `hashing/`, `helpers/`, `interceptors/`, `mail/`, `pipes/`, `types/`.
    `PrismaService`/`PrismaModule` live in `src/prisma/`. Project-only config lives in `src/config/`.
+   (`mail/` holds the `OtpSender` port and its adapters, `@Global()` like the other infrastructure modules.)
 2. A feature lives in `src/<feature>/` with `<feature>.module.ts`, `<feature>.controller.ts`, `<feature>.service.ts`, `dto/`, and `<feature>.service.spec.ts`. The folder name is plural kebab-case (`teams`, `team-memberships`).
 3. Layering is Controller → Service → `PrismaService`. No repository classes.
    - Controllers: routing, guards, pipes, Swagger, and choosing the response marker (`MessageResponse`/`Paginated`). No Prisma calls, no business logic.
@@ -39,6 +40,7 @@ description: Use when creating a new NestJS feature module, adding files, naming
 10. In order: `app.set('trust proxy', TRUST_PROXY_HOPS)`, `setGlobalPrefix('api')`, CORS, `useGlobalPipes(createValidationPipe())`, `useGlobalInterceptors(new LoggerInterceptor(), new TransformInterceptor())`, `useGlobalFilters(new GlobalExceptionFilter(), new PrismaExceptionFilter())`, Swagger, then `listen`. Register them with `new` (not `APP_*`). The exception is `ThrottlerGuard`, which is `APP_GUARD` in `app.module.ts`.
     - Create the app as `NestFactory.create<NestExpressApplication>(AppModule)` so `app.set` is typed.
     - `trust proxy` is the **number of reverse proxies** in front of the app (`TRUST_PROXY_HOPS` in the Joi schema, default `0`). Never `true`. Details and why: `nest-auth-and-security` rule 16.
+    - The filter order is not cosmetic: register `GlobalExceptionFilter` **before** `PrismaExceptionFilter`, because Nest tries the **last** registered first. Reversed, a P2002 becomes 500. There is a two-way test for it in `nest-auth-and-security` → `references/test-recipes.md`.
 
 ### Swagger
 
@@ -48,6 +50,7 @@ description: Use when creating a new NestJS feature module, adding files, naming
     - `[AUTH]`: `JwtAuthGuard` and no `@Roles` (any logged-in user).
     - Otherwise: **exactly** the `@Roles(...)` list joined with `/`, in the same order. `@Roles('ADMIN')` → `[ADMIN]`; `@Roles('ADMIN', 'STAFF')` → `[ADMIN/STAFF]`; `@Roles('STAFF', 'TEACHER', 'STUDENT')` → `[STAFF/TEACHER/STUDENT]`.
     - Ownership checks in the service (rule 8 of `nest-auth-and-security`) do not change the prefix; mention them in `description` instead.
+    - A route guarded by something other than JWT (a webhook shared secret, `AuthGuard('google')`, a refresh cookie) is still `[PUBLIC]`, and its `description` names the mechanism. `nest-auth-and-security` rule 4 has a required meta-test that checks every handler's prefix against its guards.
 
 ### Code style
 

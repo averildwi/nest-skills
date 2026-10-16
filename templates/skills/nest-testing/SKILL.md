@@ -28,6 +28,7 @@ description: Use when writing or reviewing unit tests for NestJS services, guard
 9. Never commit a boilerplate spec (`it('should be defined')` with no mocks). If `nest g` creates one, replace it with real tests or delete it.
 10. Run `npm run test` before committing (see `git-workflow`). A red or failing-to-compile spec blocks the commit.
 11. If the Prisma client is generated with `.js` import suffixes (Prisma 7 `prisma-client`), Jest needs `"moduleNameMapper": { "^(\\.{1,2}/.*)\\.js$": "$1" }`. `@averildwi/nest-prisma` 3.0.0+ adds it to `package.json` and `test/jest-e2e.json` automatically. In an older project where it is missing, specs fail with "Cannot find module './internal/class.js'" — add the mapping in its **own** commit before the feature: `chore(test): map .js imports for the prisma client in jest`.
+12. Auth has its own recipe set (mock `HashingService`/`OtpSender`, `JwtStrategy.validate`, `RolesGuard`, the route-guard meta-test, parallel OTP, e2e on a real database) in `nest-auth-and-security` → `references/test-recipes.md`. Use it instead of re-inventing those mocks; this skill stays the general pattern. On PostgreSQL + Prisma 7, e2e needs `node --experimental-vm-modules` (the client loads its query compiler with a dynamic `import()`); that file says how.
 
 ## Good example
 

@@ -13,7 +13,7 @@ If a rule here conflicts with your general habits, the skill wins.
 | Return data from a controller, throw an error, touch interceptors/filters | `nest-response-and-errors` |
 | Write a DTO, add a query/body param, add or read an env var | `nest-validation-and-config` |
 | Change `schema.prisma`, `PrismaService`, write any Prisma query, or run a Prisma CLI command | `nest-prisma` |
-| Add auth, guards, roles, hashing, OTP, throttling, CORS, `trust proxy`, `:id` params | `nest-auth-and-security` |
+| Add a controller/endpoint (guard + `[PUBLIC]`/`[AUTH]` label), or change auth, guards, roles, hashing, OTP, throttling, CORS, `trust proxy`, `:id` params | `nest-auth-and-security` |
 | Add or change business logic (tests are required) | `nest-testing` |
 | Change any file in a git repository | `git-workflow` (always) |
 
@@ -49,6 +49,7 @@ If a rule here conflicts with your general habits, the skill wins.
    - `prisma migrate reset`, `db push --accept-data-loss` / `--force-reset` without explicit approval, or a workaround when Prisma refuses.
 4. New projects use strict TypeScript: `"strict": true` (at minimum `"noImplicitAny": true`) and ESLint `@typescript-eslint/no-explicit-any: "warn"`. Do not retrofit strictness into an existing project unless asked.
 5. Before saying you are done: you ran lint (whole project) and the tests yourself, and they pass. Run `npm run build` too when `git-workflow` rule 5 requires it (Prisma schema, `tsconfig*.json`, `nest-cli.json`, `package.json`, `main.ts`). Then commit per `git-workflow`.
+    - When a task touched a controller, an endpoint, roles, or anything auth (login, register, reset, OTP, tokens), also run the checklist at the end of `nest-auth-and-security` and its `references/test-recipes.md` — the route-guard meta-test is required in every project, not optional.
 6. Never read, print or commit `.env*` contents or secrets.
 
 ## Scaffolds in this project
@@ -65,6 +66,11 @@ If this repository has a `src/common/` folder it comes from
 - Do not re-scaffold, move or delete these files as a side effect of a feature.
   If a module is missing, tell the user to run `npx @averildwi/nest-common` /
   `npx @averildwi/nest-prisma` instead of hand-writing it.
+- **One allowed exception:** when you add auth, `nest-auth-and-security` rule 24
+  lets you edit three things in `src/common/types/auth-user.ts` and nothing else
+  in `src/common/`: `RoleName = Role` (the Prisma enum), `UserId` (the project ID
+  type) and `JwtPayload` to `{ sub: string; email: string; tv: number }`. Commit
+  that as `refactor(common): type auth-user against the prisma role enum`.
 
 ## When the existing code differs from these skills
 

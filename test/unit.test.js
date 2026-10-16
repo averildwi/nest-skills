@@ -7,7 +7,7 @@ const path = require('path');
 const { parseCliArgs } = require('../src/cli');
 const { CliError } = require('../src/errors');
 const { hash, normalize } = require('../src/utils/fsHelpers');
-const { listSkills, readTemplate, renderAgentsMd, renderClaudeMd } = require('../src/utils/templates');
+const { listSkills, listSkillFiles, readTemplate, renderAgentsMd, renderClaudeMd } = require('../src/utils/templates');
 const { decideFile } = require('../src/steps/decide');
 const { buildManifest } = require('../src/steps/writeManifest');
 const { runPreflight } = require('../src/preflight');
@@ -69,6 +69,21 @@ test('templates: all seven skills ship, with frontmatter name matching the folde
         assert.match(m[1], /^[a-z0-9]+(-[a-z0-9]+)*$/);
         assert.ok(m[2].length <= 1024);
         assert.ok(src.split('\n').length < 250, `${name} is under 250 lines`);
+    }
+});
+
+test('templates: skill files list SKILL.md first, then supporting files with forward slashes', () => {
+    for (const name of EXPECTED_SKILLS) {
+        const files = listSkillFiles(name);
+        assert.equal(files[0], 'SKILL.md');
+        for (const f of files) assert.doesNotMatch(f, /\\/);
+    }
+    // Every reference file that SKILL.md links to exists, and every shipped reference is linked.
+    for (const name of EXPECTED_SKILLS) {
+        const src = readTemplate(`skills/${name}/SKILL.md`);
+        const linked = new Set([...src.matchAll(/references\/[a-z0-9-]+\.md/g)].map((m) => m[0]));
+        const shipped = listSkillFiles(name).filter((f) => f !== 'SKILL.md');
+        assert.deepEqual([...linked].sort(), shipped, `${name}: references linked from SKILL.md match the shipped files`);
     }
 });
 
