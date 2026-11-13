@@ -47,6 +47,7 @@ Skills:
 | `nest-response-and-errors` | response envelope, marker classes, exception filters and their order |
 | `nest-validation-and-config` | DTOs, `PaginationDto`, `ValidationPipe`, Joi env schema, `ConfigService` |
 | `nest-prisma` | ID type (asked first), `@@map`, timestamps, `select`, transactions, destructive commands |
+| `nest-cloudinary` | Cloudinary uploads: `UploadService`, `FilePipe` validation, `url`+`publicId`, delete-on-replace |
 | `nest-auth-and-security` | JWT, guards, roles, scrypt hashing, OTP, throttling, CORS, `:id` pipes |
 | `nest-testing` | service unit tests with mocked Prisma and transactions |
 | `git-workflow` | branch, verify, stage specific files, Conventional Commits, local commits only |

@@ -17,6 +17,7 @@ const EXPECTED_SKILLS = [
     'git-workflow',
     'nest-architecture',
     'nest-auth-and-security',
+    'nest-cloudinary',
     'nest-prisma',
     'nest-response-and-errors',
     'nest-testing',

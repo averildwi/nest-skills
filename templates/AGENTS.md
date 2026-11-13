@@ -13,6 +13,7 @@ If a rule here conflicts with your general habits, the skill wins.
 | Return data from a controller, throw an error, touch interceptors/filters | `nest-response-and-errors` |
 | Write a DTO, add a query/body param, add or read an env var | `nest-validation-and-config` |
 | Change `schema.prisma`, `PrismaService`, write any Prisma query, or run a Prisma CLI command | `nest-prisma` |
+| Upload, store, replace or delete a file (image/PDF) | `nest-cloudinary` |
 | Add a controller/endpoint (guard + `[PUBLIC]`/`[AUTH]` label), or change auth, guards, roles, hashing, OTP, throttling, CORS, `trust proxy`, `:id` params | `nest-auth-and-security` |
 | Add or change business logic (tests are required) | `nest-testing` |
 | Change any file in a git repository | `git-workflow` (always) |
@@ -55,17 +56,19 @@ If a rule here conflicts with your general habits, the skill wins.
 ## Scaffolds in this project
 
 If this repository has a `src/common/` folder it comes from
-`@averildwi/nest-common`, and `src/prisma/` comes from `@averildwi/nest-prisma`
-(version 3.0.0+ follows these skills). Treat their files as the standard:
+`@averildwi/nest-common`, `src/prisma/` comes from `@averildwi/nest-prisma`, and
+`src/common/upload/` comes from `@averildwi/nest-cloudinary`. Treat their files
+as the standard (nest-common/nest-prisma version 3.0.0+ follows these skills):
 
 - Use what they already provide (`AppConfigModule`, `HashingService`,
   `JwtAuthGuard`/`RolesGuard`, `GlobalExceptionFilter`/`PrismaExceptionFilter`,
   `LoggerInterceptor`/`TransformInterceptor`, `createValidationPipe`,
-  `PaginationDto`, `paginate`, `AuthUser`, `PrismaService`). Do not build a
-  parallel or "improved" copy of the same thing.
+  `PaginationDto`, `paginate`, `AuthUser`, `PrismaService`, `UploadService`,
+  `FilePipe`). Do not build a parallel or "improved" copy of the same thing.
 - Do not re-scaffold, move or delete these files as a side effect of a feature.
   If a module is missing, tell the user to run `npx @averildwi/nest-common` /
-  `npx @averildwi/nest-prisma` instead of hand-writing it.
+  `npx @averildwi/nest-prisma` / `npx @averildwi/nest-cloudinary` instead of
+  hand-writing it.
 - **One allowed exception:** when you add auth, `nest-auth-and-security` rule 24
   lets you edit three things in `src/common/types/auth-user.ts` and nothing else
   in `src/common/`: `RoleName = Role` (the Prisma enum), `UserId` (the project ID

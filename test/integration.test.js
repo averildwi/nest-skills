@@ -69,12 +69,12 @@ function assertBackedUp(root, rel, content) {
     assert.ok(!exists(root, `${rel}.bak`), 'no .bak next to the file');
 }
 
-test('opencode: installs 7 skills + AGENTS.md pointing at .opencode/skills, no CLAUDE.md', () => {
+test('opencode: installs 8 skills + AGENTS.md pointing at .opencode/skills, no CLAUDE.md', () => {
     const root = nestProject();
     const r = run(root, ['--agent', 'opencode', '--yes']);
     assert.equal(r.code, 0, r.err);
     for (const s of SKILLS) assert.ok(exists(root, `.opencode/skills/${s}/SKILL.md`), s);
-    assert.equal(SKILLS.length, 7);
+    assert.equal(SKILLS.length, 8);
     for (const f of SKILL_FILES) assert.ok(exists(root, `.opencode/skills/${f}`), f);
     assert.match(read(root, 'AGENTS.md'), /`\.opencode\/skills\/<name>\/SKILL\.md`/);
     assert.ok(!read(root, 'AGENTS.md').includes('{{'));
