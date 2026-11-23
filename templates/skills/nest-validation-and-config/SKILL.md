@@ -34,6 +34,8 @@ description: Use when writing DTOs, query/body validation, PaginationDto, enviro
 ### Environment
 
 11. Validate every env var with Joi through `AppConfigModule.forProject(extraSchema)`. Define project vars in `src/config/env.schema.ts` and concat them onto `baseEnvSchema`.
+    - Import Joi as a default import: `import Joi from 'joi'`. `import * as Joi from 'joi'` compiles and passes the tests, but in an ESM project (`"type": "module"`) the app fails at boot with `Joi.string is not a function`.
+    - Joi's own options (`abortEarly`, `allowUnknown`) go in `validationOptions.libraryOptions` with `@nestjs/config` 12+ (Standard Schema); the old flat shape fails to compile (`TS2353: 'abortEarly' does not exist in type 'Options'`). v12 already applies `abortEarly: false` + `allowUnknown: true` to Joi schemas by default, so you only need `validationOptions` to change them. With `@nestjs/config` 3/4 the options sit directly in `validationOptions` and are required. Check the installed major in `package.json`; `AppConfigModule` from nest-common already uses the right shape.
 12. If code reads a variable, the variable is in the schema **and** in `.env.example`. If a variable is in the schema, some code reads it.
 13. Read env with `ConfigService`: `config.getOrThrow<string>('JWT_SECRET')`. Never use `process.env` outside `main.ts` and `PrismaService`.
 14. Never put a fallback for secrets (`?? 'dev-secret'`). Mark secrets `.required()` in Joi so boot fails instead.
@@ -102,6 +104,8 @@ export function ToBoolean(): PropertyDecorator {
 Env schema and module (`src/common/config/base-env.schema.ts`, `app-config.module.ts`):
 
 ```ts
+import Joi from 'joi';
+
 export const baseEnvSchema = Joi.object({
   DATABASE_URL: Joi.string().required(),
   PORT: Joi.number().default(3000),
@@ -119,7 +123,14 @@ export class AppConfigModule {
     const schema = extraSchema ? baseEnvSchema.concat(extraSchema) : baseEnvSchema;
     return {
       module: AppConfigModule,
-      imports: [ConfigModule.forRoot({ isGlobal: true, validationSchema: schema, validationOptions: { abortEarly: false, allowUnknown: true } })],
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          validationSchema: schema,
+          // @nestjs/config 12+. With 3/4: validationOptions: { abortEarly: false, allowUnknown: true }
+          validationOptions: { libraryOptions: { abortEarly: false, allowUnknown: true } },
+        }),
+      ],
     };
   }
 }
@@ -159,6 +170,12 @@ export class UpdateTeamDto { @IsOptional() @IsString() name?: string }
 // BAD: process.env outside main.ts/PrismaService, a hardcoded fallback secret, and a var missing from the schema.
 secretOrKey: process.env.JWT_SECRET ?? 'super-secret',
 const ready = process.env.FRONTEND_READY!;
+
+// BAD: namespace import. Builds and tests pass, ESM boot fails with "Joi.string is not a function".
+import * as Joi from 'joi';
+
+// BAD on @nestjs/config 12+: Joi options outside libraryOptions do not compile (TS2353).
+validationOptions: { abortEarly: false, allowUnknown: true },
 ```
 
 ## Checklist before finishing
