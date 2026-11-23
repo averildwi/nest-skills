@@ -13,7 +13,7 @@ npx @averildwi/nest-skills --agent opencode
 ## Recommended order on a new project
 
 ```bash
-npx @nestjs/cli@11 new my-app --strict
+npx @nestjs/cli@latest new my-app --strict    # Nest 12 asks CommonJS or ESM
 cd my-app
 npx @averildwi/nest-prisma --db postgres     # client in generated/prisma (root)
 npx @averildwi/nest-common
@@ -21,9 +21,10 @@ npx @averildwi/nest-cloudinary                # Cloudinary upload module
 npx @averildwi/nest-skills --agent opencode   # or claude / both
 ```
 
-Commit after each tool, on its own (see the `git-workflow` skill). The standard
-targets Nest 11 (CommonJS + Jest + ESLint); pin `@nestjs/cli@11` when creating
-the project.
+Commit after each tool, on its own (see the `git-workflow` skill). The skills apply to
+Nest 11 and Nest 12, CommonJS and ESM. Where the two differ (`.js` import suffixes,
+`@nestjs/config` 12 `libraryOptions`, `@nestjs/jwt` 12 under Jest), the skill says so.
+Test and lint examples still assume Jest + ESLint; Vitest and oxlint variants are planned.
 
 ## What gets installed
 
