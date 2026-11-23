@@ -55,6 +55,7 @@ description: Use when creating a new NestJS feature module, adding files, naming
 ### Code style
 
 13. Prettier is `singleQuote: true`, `trailingComma: 'all'`, 2-space indent. Use relative imports (`../common/...`), not `src/...`.
+    - Follow the project's import suffix, not the examples in these skills. In an ESM project (`"type": "module"` in `package.json`) relative imports end in `.js` (`'./teams.service.js'`, `'../../generated/prisma/client.js'`); without it `tsc` fails with `Cannot find module` (`TS2307`/`TS2835`). A CommonJS project usually has no suffix. When unsure, copy what `src/app.module.ts` does. The examples here are written without the suffix.
 14. Comments are in English and explain **why**, not what. No commented-out code, and no leftover notes such as `// adjust this import path`.
 
 ## Good example
