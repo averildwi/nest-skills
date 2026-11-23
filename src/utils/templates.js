@@ -1,6 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
+const { renderStack, DEFAULT_STACK } = require('./variants');
+const { describeStack } = require('./detectStack');
+
 const TEMPLATES_DIR = path.join(__dirname, '..', '..', 'templates');
 
 /** Skill folders shipped in templates/skills, sorted. */
@@ -37,9 +40,33 @@ function readTemplate(rel, templatesDir = TEMPLATES_DIR) {
     return fs.readFileSync(path.join(templatesDir, rel), 'utf8').replace(/\r\n/g, '\n');
 }
 
-/** AGENTS.md points at the real skills folder of the chosen agent. */
-function renderAgentsMd(source, { skillsDir }) {
-    return source.split('{{SKILLS_DIR}}').join(skillsDir);
+/** A skill file rendered for the project stack (see utils/variants.js). */
+function renderSkill(source, { stack = DEFAULT_STACK } = {}, name) {
+    return renderStack(source, stack, name);
+}
+
+/** AGENTS.md points at the real skills folder of the chosen agent and names the stack. */
+function renderAgentsMd(source, { skillsDir, stack = DEFAULT_STACK }) {
+    return renderStack(source, stack, 'AGENTS.md').split('{{SKILLS_DIR}}').join(skillsDir).split('{{STACK}}').join(describeStack(stack));
+}
+
+/**
+ * The index as a section of someone else's AGENTS.md: its title becomes a
+ * level-2 heading and every other heading moves one level down, so it nests
+ * under the file's own `# AGENTS.md`.
+ */
+function toIndexBlock(agentsMd) {
+    let fenced = false;
+    return agentsMd
+        .split('\n')
+        .map((line, i) => {
+            if (/^```/.test(line)) fenced = !fenced;
+            if (fenced) return line;
+            if (i === 0 && /^# /.test(line)) return `## ${line.slice(2).replace(/^AGENTS\.md:\s*/, '')}`;
+            return /^#{1,5} /.test(line) ? `#${line}` : line;
+        })
+        .join('\n')
+        .replace(/\n+$/, '');
 }
 
 /** CLAUDE.md imports the index file, whichever name it ended up with. */
@@ -47,4 +74,4 @@ function renderClaudeMd(source, { indexFile }) {
     return source.split('@AGENTS.md').join(`@${indexFile}`);
 }
 
-module.exports = { TEMPLATES_DIR, listSkills, listSkillFiles, readTemplate, renderAgentsMd, renderClaudeMd };
+module.exports = { TEMPLATES_DIR, listSkills, listSkillFiles, readTemplate, renderSkill, renderAgentsMd, toIndexBlock, renderClaudeMd };

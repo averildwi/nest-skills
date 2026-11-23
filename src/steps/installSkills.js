@@ -1,10 +1,10 @@
 const { decideFile, applyDecisions, record } = require('./decide');
-const { listSkills, listSkillFiles, readTemplate } = require('../utils/templates');
+const { listSkills, listSkillFiles, readTemplate, renderSkill } = require('../utils/templates');
 
 /**
  * Copies every file of templates/skills/<name>/ (SKILL.md plus supporting
- * files such as references/*.md) into <skillsDir>/<name>/. Each file is
- * tracked on its own, so edit protection works per file.
+ * files such as references/*.md) into <skillsDir>/<name>/, rendered for the
+ * detected stack. Each file is tracked on its own, so edit protection works per file.
  */
 module.exports = {
     id: 'skills',
@@ -15,7 +15,9 @@ module.exports = {
         for (const name of listSkills(ctx.templatesDir)) {
             for (const file of listSkillFiles(name, ctx.templatesDir)) {
                 const relPath = `${ctx.skillsDir}/${name}/${file}`;
-                decisions.push(await decideFile(ctx, relPath, readTemplate(`skills/${name}/${file}`, ctx.templatesDir)));
+                const rel = `skills/${name}/${file}`;
+                const desired = renderSkill(readTemplate(rel, ctx.templatesDir), ctx, rel);
+                decisions.push(await decideFile(ctx, relPath, desired, { followsStack: true }));
             }
         }
         record(ctx, decisions);

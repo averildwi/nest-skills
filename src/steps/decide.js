@@ -31,21 +31,38 @@ function backupRoot(ctx) {
  * manifest should store for this path (undefined = do not track it).
  */
 async function decideFile(ctx, relPath, desired, options = {}) {
-    return { relPath, ...(await decideInner(ctx, relPath, desired, options)) };
+    const abs = path.join(ctx.projectRoot, relPath);
+    const current = (await fsx.exists(abs)) ? await fsx.readText(abs) : undefined;
+    return { relPath, abs, desired, ...decideState(ctx, { key: relPath, label: relPath, current, desired }, options) };
 }
 
-async function decideInner(ctx, relPath, desired, options) {
-    const abs = path.join(ctx.projectRoot, relPath);
+/**
+ * The state machine of decideFile, for any piece of content tracked under
+ * `key` in the manifest (a whole file, or the nest-skills block of AGENTS.md).
+ * `current` is undefined when the content does not exist yet.
+ *
+ * options.keepRemoved: content that was recorded but is now gone is not added
+ * again without --force (the user removed it on purpose).
+ */
+function decideState(ctx, { key, label, current, desired }, options = {}) {
     const desiredHash = fsx.hash(desired);
-    const recorded = ctx.manifest ? ctx.manifest.files[relPath] : undefined;
+    const recorded = ctx.manifest ? ctx.manifest.files[key] : undefined;
 
-    if (!(await fsx.exists(abs))) {
-        return { action: 'write', abs, relPath, desired, entry: { kind: 'create', label: relPath }, recordHash: desiredHash };
+    if (current === undefined) {
+        if (options.keepRemoved && recorded !== undefined && !ctx.force) {
+            return {
+                action: 'none',
+                entry: { kind: 'warn', label, reason: options.removedReason || 'removed by you, not added again (use --force to add it)' },
+                recordHash: recorded,
+                removed: true,
+            };
+        }
+        return { action: 'write', entry: { kind: 'create', label }, recordHash: desiredHash };
     }
 
-    const currentHash = fsx.hash(await fsx.readText(abs));
+    const currentHash = fsx.hash(current);
     if (currentHash === desiredHash) {
-        return { action: 'none', entry: { kind: 'skip', label: relPath, reason: 'up to date' }, recordHash: desiredHash };
+        return { action: 'none', entry: { kind: 'skip', label, reason: 'up to date' }, recordHash: desiredHash };
     }
 
     if (recorded === undefined) {
@@ -55,10 +72,7 @@ async function decideInner(ctx, relPath, desired, options) {
             return {
                 action: 'write',
                 backup: true,
-                abs,
-                relPath,
-                desired,
-                entry: { kind: 'modify', label: relPath, reason: `not written by nest-skills, overwritten by --force, backup in ${BACKUP_DIR}/` },
+                entry: { kind: 'modify', label, reason: `not written by nest-skills, overwritten by --force, backup in ${BACKUP_DIR}/` },
                 recordHash: desiredHash,
             };
         }
@@ -66,7 +80,7 @@ async function decideInner(ctx, relPath, desired, options) {
             action: 'none',
             entry: {
                 kind: 'warn',
-                label: relPath,
+                label,
                 reason: options.protect
                     ? 'exists and was not written by nest-skills, left untouched'
                     : 'exists and was not written by nest-skills, left untouched (use --force to replace it)',
@@ -81,46 +95,51 @@ async function decideInner(ctx, relPath, desired, options) {
             return {
                 action: 'write',
                 backup: true,
-                abs,
-                relPath,
-                desired,
-                entry: { kind: 'modify', label: relPath, reason: `edited by you, overwritten by --force, backup in ${BACKUP_DIR}/` },
+                entry: { kind: 'modify', label, reason: `edited by you, overwritten by --force, backup in ${BACKUP_DIR}/` },
                 recordHash: desiredHash,
             };
         }
         return {
             action: 'none',
-            entry: { kind: 'warn', label: relPath, reason: 'edited by you, kept (use --force to overwrite)' },
+            entry: { kind: 'warn', label, reason: 'edited by you, kept (use --force to overwrite)' },
             recordHash: recorded,
             edited: true,
         };
     }
 
     // options.followsConfig: the content is rendered from the agent/folder
-    // (AGENTS.md, CLAUDE.md). Skills are identical for every agent, so a
-    // changed agent alone is no reason to refresh them on `install`.
+    // (AGENTS.md, CLAUDE.md). options.followsStack: it is rendered for the
+    // detected stack (skills, AGENTS.md). A change of either refreshes the
+    // unedited content on `install`; otherwise only `update` refreshes it.
     const configRefresh = ctx.configChanged && options.followsConfig;
-    if (ctx.command === 'update' || configRefresh) {
-        const reason = ctx.command === 'update' ? 'newer version' : 'agent or folder changed';
-        return { action: 'write', abs, relPath, desired, entry: { kind: 'modify', label: relPath, reason }, recordHash: desiredHash };
+    const stackRefresh = ctx.stackChanged && options.followsStack;
+    if (ctx.command === 'update' || configRefresh || stackRefresh) {
+        const reason = ctx.command === 'update' ? 'newer version' : configRefresh ? 'agent or folder changed' : 'project stack changed';
+        return { action: 'write', entry: { kind: 'modify', label, reason }, recordHash: desiredHash };
     }
     return {
         action: 'none',
-        entry: { kind: 'skip', label: relPath, reason: 'newer version available, run "nest-skills update"' },
+        entry: { kind: 'skip', label, reason: 'newer version available, run "nest-skills update"' },
         recordHash: recorded,
         outdated: true,
     };
 }
 
-/** Applies the decisions of one step. Returns the changed files for the summary. */
+/**
+ * Applies the decisions of one step. Returns the changed files for the summary.
+ * A decision may carry `content` (written as is, line endings kept) instead
+ * of `desired` (written with LF).
+ */
 async function applyDecisions(decisions, ctx) {
     const files = [];
     for (const d of decisions) {
         if (d.action !== 'write') continue;
         if (d.backup) await writeBackup(ctx, d);
-        await fsx.writeText(d.abs, d.desired);
-        ctx.ui.success(`${d.entry.kind === 'create' ? 'Created' : 'Updated'} ${d.relPath}`);
-        files.push({ kind: d.entry.kind, path: d.relPath });
+        if (d.content !== undefined) await fsx.writeRaw(d.abs, d.content);
+        else await fsx.writeText(d.abs, d.desired);
+        const kind = d.fileKind || d.entry.kind;
+        ctx.ui.success(`${kind === 'create' ? 'Created' : 'Updated'} ${d.relPath}`);
+        files.push({ kind, path: d.relPath });
     }
     return files;
 }
@@ -130,15 +149,15 @@ async function writeBackup(ctx, d) {
     // Ignores the whole backup folder without touching the project's .gitignore.
     const ignore = path.join(ctx.projectRoot, BACKUP_DIR, '.gitignore');
     if (!(await fsx.exists(ignore))) await fsx.writeText(ignore, '*\n');
-    await fsx.writeText(path.join(ctx.projectRoot, relBackup), await fsx.readText(d.abs));
+    await fsx.writeRaw(path.join(ctx.projectRoot, relBackup), await fsx.readText(d.abs));
     (ctx.backups || (ctx.backups = [])).push(relBackup);
 }
 
 /** Remembers what the manifest step must store. */
 function record(ctx, decisions) {
     for (const d of decisions) {
-        if (d.recordHash) ctx.nextFiles[d.relPath] = d.recordHash;
+        if (d.recordHash) ctx.nextFiles[d.recordKey || d.relPath] = d.recordHash;
     }
 }
 
-module.exports = { decideFile, applyDecisions, record };
+module.exports = { decideFile, decideState, applyDecisions, record };

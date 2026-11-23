@@ -145,27 +145,98 @@ test('--dir overrides the skills folder and AGENTS.md follows it', () => {
     assert.match(run(root, ['--yes']).out, /Nothing to do/);
 });
 
-test('existing AGENTS.md and CLAUDE.md of the user are never touched', () => {
-    const root = nestProject({ 'AGENTS.md': '# My rules\n', 'CLAUDE.md': '# Claude notes\n' });
-    const r = run(root, ['--agent', 'claude', '--yes', '--force']);
+test('the project own AGENTS.md keeps its text; the index goes into a marked block', () => {
+    const own = '# My rules\n\nAlways be nice.\n';
+    const root = nestProject({ 'AGENTS.md': own, 'CLAUDE.md': '# Claude notes\n' });
+    const r = run(root, ['--agent', 'claude', '--yes']);
     assert.equal(r.code, 0, r.err);
-    assert.equal(read(root, 'AGENTS.md'), '# My rules\n');
+
+    const after = read(root, 'AGENTS.md');
+    assert.ok(after.startsWith(own), 'the user text is kept, unchanged, at the top');
+    assert.match(after, /<!-- nest-skills:start -->/);
+    assert.match(after, /<!-- nest-skills:end -->\n$/);
+    assert.match(after, /## NestJS standards \(Everill\)/, 'the index is nested as a section');
+    assert.match(after, /`\.claude\/skills\/<name>\/SKILL\.md`/);
+    assert.ok(!after.includes('{{'));
+    assert.ok(!exists(root, 'AGENTS.nest-skills.md'), 'no separate index file any more');
+
+    // CLAUDE.md of the user is still never touched, and points at AGENTS.md.
     assert.equal(read(root, 'CLAUDE.md'), '# Claude notes\n');
-    assert.ok(exists(root, 'AGENTS.nest-skills.md'));
-    assert.match(read(root, 'AGENTS.nest-skills.md'), /\.claude\/skills/);
-    assert.match(r.out, /Add @AGENTS\.nest-skills\.md as the first line of CLAUDE\.md/);
-    assert.match(r.out, /Read AGENTS\.nest-skills\.md before writing NestJS code/);
-    assert.match(r.out, /git add AGENTS\.nest-skills\.md \.claude\/skills \.nest-skills\.json/);
+    assert.match(r.out, /Add @AGENTS\.md as the first line of CLAUDE\.md/);
+    assert.doesNotMatch(r.out, /Link the index from your AGENTS\.md/);
+
+    const m = JSON.parse(read(root, '.nest-skills.json'));
+    assert.equal(m.indexFile, 'AGENTS.md');
+    assert.equal(m.indexMode, 'block');
+    // The block is tracked by its own key, so the user's text is not hashed.
+    assert.ok(m.files['AGENTS.md#nest-skills']);
+    assert.equal(m.files['AGENTS.md'], undefined);
+
+    // Idempotent, and the user's text survives a second run.
+    const second = run(root, ['--yes']);
+    assert.match(second.out, /Nothing to do/);
+    assert.equal(read(root, 'AGENTS.md'), after);
 });
 
-test('user AGENTS.md that already links the fallback index gets no link hint', () => {
+test('the block is refreshed in place by update, and an edited block is kept', () => {
+    const own = '# My rules\n\nAlways be nice.\n';
+    const root = nestProject({ 'AGENTS.md': own });
+    run(root, ['--agent', 'opencode', '--yes']);
+
+    // The user edits inside the block and adds text after it.
+    const edited = `${read(root, 'AGENTS.md').replace('Always be nice.', 'Always be nice. (mine)').replace('## NestJS standards', '## NestJS standards (local note)')}\nMy footer.\n`;
+    fs.writeFileSync(path.join(root, 'AGENTS.md'), edited);
+    const upd = run(root, ['update', '--yes']);
+    assert.equal(upd.code, 0, upd.err);
+    assert.match(upd.out, /edited by you, kept/);
+    assert.equal(read(root, 'AGENTS.md'), edited);
+
+    const forced = run(root, ['update', '--yes', '--force']);
+    assert.equal(forced.code, 0, forced.err);
+    const after = read(root, 'AGENTS.md');
+    assert.ok(after.startsWith('# My rules\n\nAlways be nice. (mine)\n'), 'text before the block is kept');
+    assert.match(after, /<!-- nest-skills:end -->\n\nMy footer\.\n$/, 'text after the block is kept');
+    assert.ok(!after.includes('(local note)'), 'the block itself was refreshed');
+});
+
+test('a user who deletes the block is not given it back without --force', () => {
     const root = nestProject({ 'AGENTS.md': '# My rules\n' });
-    assert.match(run(root, ['--agent', 'opencode', '--yes']).out, /Link the index from your AGENTS\.md/);
-    fs.writeFileSync(path.join(root, 'AGENTS.md'), '# My rules\nRead AGENTS.nest-skills.md before writing NestJS code.\n');
-    const r = run(root, ['--yes']);
+    run(root, ['--agent', 'opencode', '--yes']);
+    fs.writeFileSync(path.join(root, 'AGENTS.md'), '# My rules\n');
+
+    const again = run(root, ['update', '--yes']);
+    assert.equal(again.code, 0, again.err);
+    assert.match(again.out, /removed the nest-skills block/);
+    assert.equal(read(root, 'AGENTS.md'), '# My rules\n');
+
+    const forced = run(root, ['update', '--yes', '--force']);
+    assert.equal(forced.code, 0, forced.err);
+    assert.match(read(root, 'AGENTS.md'), /<!-- nest-skills:start -->/);
+});
+
+test('an install made before 1.2.0 keeps its AGENTS.nest-skills.md index', () => {
+    const root = nestProject({ 'AGENTS.md': '# My rules\n' });
+    // Manifest of an older version: index in the fallback file, no indexMode.
+    const index = '# AGENTS.md: NestJS standards (Everill)\nold body\n';
+    fs.writeFileSync(path.join(root, 'AGENTS.nest-skills.md'), index);
+    fs.writeFileSync(
+        path.join(root, '.nest-skills.json'),
+        JSON.stringify({
+            tool: '@averildwi/nest-skills',
+            version: '1.1.0',
+            agent: 'opencode',
+            skillsDir: '.opencode/skills',
+            indexFile: 'AGENTS.nest-skills.md',
+            files: { 'AGENTS.nest-skills.md': require('../src/utils/fsHelpers').hash(index) },
+        }),
+    );
+
+    const r = run(root, ['update', '--yes']);
     assert.equal(r.code, 0, r.err);
-    assert.match(r.out, /already links AGENTS\.nest-skills\.md/);
-    assert.doesNotMatch(r.out, /Link the index from your AGENTS\.md/);
+    assert.equal(read(root, 'AGENTS.md'), '# My rules\n', 'the user AGENTS.md is still untouched');
+    assert.match(read(root, 'AGENTS.nest-skills.md'), /Which skill to read/, 'the old index file is refreshed in place');
+    assert.match(r.out, /Link the index from your AGENTS\.md/);
+    assert.equal(JSON.parse(read(root, '.nest-skills.json')).indexFile, 'AGENTS.nest-skills.md');
 });
 
 test('user CLAUDE.md that already imports the index is accepted silently', () => {
@@ -296,6 +367,64 @@ test('switching claude -> both keeps the shared folder and does not touch skills
     assert.match(r.out, /newer version available/);
     assert.doesNotMatch(r.out, /Old skills folder still present/);
     assert.equal(JSON.parse(read(root, '.nest-skills.json')).agent, 'both');
+});
+
+/** A Nest 12 ESM project: "type": "module", Vitest, oxlint. */
+const ESM_PROJECT = {
+    'package.json': JSON.stringify({
+        name: 'app',
+        type: 'module',
+        scripts: { lint: 'oxlint --type-aware src/ test/', test: 'vitest run' },
+        dependencies: { '@nestjs/core': '^12.0.1' },
+        devDependencies: { oxlint: '^1.58.0', vitest: '^4.1.2' },
+    }),
+};
+
+test('an ESM + Vitest + oxlint project gets Vitest mocks, .js imports and oxlint commands', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nsk-int-'));
+    for (const [rel, content] of Object.entries(ESM_PROJECT)) fs.writeFileSync(path.join(root, rel), content);
+
+    const r = run(root, ['--agent', 'opencode', '--yes']);
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.out, /Project stack\s+ESM · \.js imports · Vitest · oxlint/);
+
+    const testing = read(root, '.opencode/skills/nest-testing/SKILL.md');
+    assert.match(testing, /vi\.fn\(/);
+    assert.doesNotMatch(testing, /\bjest\./);
+    assert.match(testing, /import type \{ Mock \} from 'vitest';/);
+    assert.match(testing, /from '\.\.\/prisma\/prisma\.service\.js'/);
+
+    const git = read(root, '.opencode/skills/git-workflow/SKILL.md');
+    assert.doesNotMatch(git, /npx eslint "/);
+    assert.match(git, /npm run lint/);
+
+    assert.match(read(root, 'AGENTS.md'), /ESM · \.js imports · Vitest · oxlint/);
+    assert.equal(JSON.parse(read(root, '.nest-skills.json')).stack, 'ESM · .js imports · Vitest · oxlint');
+
+    assert.match(run(root, ['--yes']).out, /Nothing to do/);
+});
+
+test('a project that moves from Jest to Vitest gets its unedited skills re-rendered', () => {
+    const root = nestProject();
+    run(root, ['--agent', 'opencode', '--yes']);
+    const file = '.opencode/skills/nest-testing/SKILL.md';
+    assert.match(read(root, file), /jest\.fn\(/);
+
+    // The user edited one skill: it must be kept even though the stack changed.
+    const edited = `${read(root, '.opencode/skills/nest-prisma/SKILL.md')}\n## Mine\n`;
+    fs.writeFileSync(path.join(root, '.opencode/skills/nest-prisma/SKILL.md'), edited);
+
+    fs.writeFileSync(
+        path.join(root, 'package.json'),
+        JSON.stringify({ name: 'app', dependencies: { '@nestjs/core': '^11.0.0' }, devDependencies: { vitest: '^4.1.2' }, scripts: { test: 'vitest run' } }),
+    );
+    const r = run(root, ['--yes']);
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.out, /project stack changed/);
+    assert.match(r.out, /Project stack changed/);
+    assert.match(read(root, file), /vi\.fn\(/, 'install re-renders unedited skills for the new stack');
+    assert.equal(read(root, '.opencode/skills/nest-prisma/SKILL.md'), edited, 'your edit is kept');
+    assert.match(read(root, 'AGENTS.md'), /CommonJS · extensionless imports · Vitest · no linter/);
 });
 
 test('--help and --version', () => {

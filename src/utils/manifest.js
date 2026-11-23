@@ -9,7 +9,9 @@ const { MANIFEST_FILE } = require('../config/agents');
  * at write time. A file whose current hash differs from the recorded one was
  * edited by the user and is never overwritten without --force.
  *
- * Shape: { tool, version, agent, skillsDir, indexFile, files: { "<rel path>": "<sha256>" } }
+ * Shape: { tool, version, agent, skillsDir, indexFile, indexMode, stack, files: { "<rel path>": "<sha256>" } }
+ * indexMode "block": the index is a marked block inside the project's own
+ * AGENTS.md, tracked under the key "AGENTS.md#nest-skills" (hash of the block only).
  */
 function manifestPath(projectRoot) {
     return path.join(projectRoot, MANIFEST_FILE);

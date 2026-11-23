@@ -18,11 +18,22 @@ await Promise.all(rows.map((r) => this.hashing.verify(code, r.codeHash))); // fi
 
 Turn on the lint rules that catch these, then fix what they report:
 
+<!-- stack:eslint -->
 ```js
 // eslint.config.mjs, in the rules block
 '@typescript-eslint/no-misused-promises': 'error',
 '@typescript-eslint/no-floating-promises': 'error',
 ```
+<!-- /stack -->
+<!-- stack:oxlint -->
+```json
+// .oxlintrc.json, in "rules" (needs `oxlint --type-aware`, which the Nest 12 lint script already uses)
+"typescript/no-misused-promises": "error",
+"typescript/no-floating-promises": "error"
+```
+
+Changing `.oxlintrc.json` is a separate `chore(lint)` commit (`git-workflow` rule 6).
+<!-- /stack -->
 
 `tsc` alone does not catch it: `if (promise)` and `find(() => promise)` compile.
 
@@ -122,7 +133,7 @@ describe('LegacyPasswordService', () => {
 
   it('shows why a missing await is fatal: a Promise is always truthy', async () => {
     const legacy = await bcryptHash('old pass 1', 10);
-    // eslint rule @typescript-eslint/no-misused-promises reports exactly this.
+    // The no-misused-promises lint rule reports exactly this.
     const found = [legacy].find(
       () => service.verify('WRONG', legacy) as unknown as boolean,
     );

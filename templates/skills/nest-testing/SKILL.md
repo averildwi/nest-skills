@@ -27,8 +27,23 @@ description: Use when writing or reviewing unit tests for NestJS services, guard
 8. Use `describe('<Service>.<method>', ...)` with one `describe` per public method.
 9. Never commit a boilerplate spec (`it('should be defined')` with no mocks). If `nest g` creates one, replace it with real tests or delete it.
 10. Run `npm run test` before committing (see `git-workflow`). A red or failing-to-compile spec blocks the commit.
-11. If the Prisma client is generated with `.js` import suffixes (Prisma 7 `prisma-client`), Jest needs `"moduleNameMapper": { "^(\\.{1,2}/.*)\\.js$": "$1" }`. `@averildwi/nest-prisma` 3.0.0+ adds it to `package.json` and `test/jest-e2e.json` automatically. In an older project where it is missing, specs fail with "Cannot find module './internal/class.js'" — add the mapping in its **own** commit before the feature: `chore(test): map .js imports for the prisma client in jest`.
-12. Auth has its own recipe set (mock `HashingService`/`OtpSender`, `JwtStrategy.validate`, `RolesGuard`, the route-guard meta-test, parallel OTP, e2e on a real database) in `nest-auth-and-security/references/test-recipes.md`. Use it instead of re-inventing those mocks; this skill stays the general pattern. On PostgreSQL + Prisma 7, e2e needs `node --experimental-vm-modules` (the client loads its query compiler with a dynamic `import()`); that file says how.
+<!-- stack:jest -->
+11. If the Prisma client is generated with `.js` import suffixes (Prisma 7 `prisma-client`), Jest needs `"moduleNameMapper": { "^(\\.{1,2}/.*)\\.js$": "$1" }`. Without it any spec that imports `PrismaService` fails with "Cannot find module './internal/class.js'". `@averildwi/nest-prisma` 3.0.0+ adds it to `package.json` and `test/jest-e2e.json` automatically, but **not** to a `jest.config.ts` (the Nest 12 CommonJS template ships one) — verified: the unit specs fail there until you add it. Add the mapping in its **own** commit before the feature: `chore(test): map .js imports for the prisma client in jest`. In `jest.config.ts` it goes next to the `pathsToModuleNameMapper` entry:
+
+```ts
+moduleNameMapper: {
+  '^(\\.{1,2}/.*)\\.js$': '$1',
+  ...pathsToModuleNameMapper(paths, { prefix: '<rootDir>/' }),
+},
+```
+<!-- /stack -->
+<!-- stack:vitest -->
+11. Vitest resolves the `.js` suffixes of the Prisma 7 client by itself, so it needs no module mapping. Globals (`describe`, `it`, `expect`, `vi`) come from `test.globals: true` in `vitest.config.ts` and `"types": ["vitest/globals"]` in `tsconfig.json` (the Nest 12 template sets both). `Mock` is a type and is imported: `import type { Mock } from 'vitest'`.
+<!-- /stack -->
+12. Auth has its own recipe set (mock `HashingService`/`OtpSender`, `JwtStrategy.validate`, `RolesGuard`, the route-guard meta-test, parallel OTP, e2e on a real database) in `nest-auth-and-security/references/test-recipes.md`. Use it instead of re-inventing those mocks; this skill stays the general pattern.
+<!-- stack:jest -->
+    On PostgreSQL + Prisma 7, Jest e2e needs `node --experimental-vm-modules` (the client loads its query compiler with a dynamic `import()`); that file says how.
+<!-- /stack -->
 
 ## Good example
 
@@ -84,6 +99,7 @@ describe('TeamsService.leave', () => {
 });
 ```
 
+<!-- stack:jest -->
 Jest config in `package.json` (Prisma 7 client in root `generated/`):
 
 ```json
@@ -96,6 +112,25 @@ Jest config in `package.json` (Prisma 7 client in root `generated/`):
   "testEnvironment": "node"
 }
 ```
+
+A Nest 12 CommonJS project keeps this in `jest.config.ts` instead; the same keys apply.
+<!-- /stack -->
+<!-- stack:vitest -->
+Vitest config (`vitest.config.ts`, as written by the Nest 12 template; e2e uses `vitest.config.e2e.ts` with `**/*.e2e-spec.ts`):
+
+```ts
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  resolve: { tsconfigPaths: true },
+  test: {
+    globals: true,
+    root: './',
+    include: ['**/*.spec.ts'],
+  },
+});
+```
+<!-- /stack -->
 
 ## Bad example
 

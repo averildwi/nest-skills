@@ -29,9 +29,15 @@ async function writeText(file, content) {
     await fs.writeFile(file, normalize(content), 'utf8');
 }
 
+/** Writes content as given, for files of the user whose line endings must be kept. */
+async function writeRaw(file, content) {
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    await fs.writeFile(file, content, 'utf8');
+}
+
 /** Display a path relative to the project root with forward slashes. */
 function rel(root, absolutePath) {
     return path.relative(root, absolutePath).split(path.sep).join('/');
 }
 
-module.exports = { normalize, hash, exists, readText, writeText, rel };
+module.exports = { normalize, hash, exists, readText, writeText, writeRaw, rel };

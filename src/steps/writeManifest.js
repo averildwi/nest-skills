@@ -3,6 +3,8 @@ const path = require('path');
 const fsx = require('../utils/fsHelpers');
 const { MANIFEST_FILE } = require('../config/agents');
 const { manifestPath, serializeManifest } = require('../utils/manifest');
+const { describeStack } = require('../utils/detectStack');
+const { DEFAULT_STACK } = require('../utils/variants');
 
 /**
  * Must run last: earlier steps fill ctx.nextFiles during plan().
@@ -17,6 +19,10 @@ function buildManifest(ctx) {
         agent: ctx.agent.value,
         skillsDir: ctx.skillsDir,
         indexFile: ctx.indexFile,
+        indexMode: ctx.indexMode || 'file',
+        // Detected, never asked: a later run compares it to tell that the
+        // project changed stack and the examples must be re-rendered.
+        stack: describeStack(ctx.stack || DEFAULT_STACK),
         files: { ...previous, ...ctx.nextFiles },
     };
 }

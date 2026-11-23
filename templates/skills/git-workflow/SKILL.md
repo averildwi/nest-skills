@@ -22,11 +22,23 @@ Always, as soon as you modify files in a git repository. This skill is mandatory
    - always: lint and `npm run test`
    - if you touched `prisma/schema.prisma`, `tsconfig*.json`, `nest-cli.json`, `package.json` or `main.ts`: also `npx prisma generate` (when Prisma changed) and `npm run build`
    - if anything you are responsible for is red, fix it first. **Never commit red.** Never use `--no-verify`.
-6. **Lint gate = the whole project.** Run `npx eslint "{src,apps,libs,test}/**/*.ts"` (no `--fix` for the gate; the default Nest `npm run lint` also runs `--fix` on the whole repo, which would reformat files outside your commit). The commit is blocked by an error in **any** file.
+6. **Lint gate = the whole project.**
+<!-- stack:eslint -->
+   Run `npx eslint "{src,apps,libs,test}/**/*.ts"` (no `--fix` for the gate; the default Nest `npm run lint` also runs `--fix` on the whole repo, which would reformat files outside your commit). The commit is blocked by an error in **any** file.
+<!-- /stack -->
+<!-- stack:oxlint -->
+   Run `npm run lint` (`oxlint --type-aware src/ test/`). It reports without rewriting files, so there is no `--fix` to avoid. ESLint is **not installed** in this project: `npx eslint ...` would download another linter and lint with the wrong rules. The commit is blocked by an error in **any** file.
+   - oxlint does not format. Format only the files you changed with `npx prettier --write <files>` (`npm run format` rewrites every file in `src/` and `test/`), then lint again.
+<!-- /stack -->
     - If errors sit in files you did not touch and were red before your change, do not hide them and do not fix them inside your feature commit. Tell the user once: "Pre-existing lint errors in `<files>` (not touched by this change)." Fix them in a separate `chore(<scope>)` or `refactor(<scope>)` commit when the user agrees.
     - If you edit such a file for your feature, it becomes yours: its lint errors must be fixed in that commit.
+<!-- stack:eslint -->
     - Never add `eslint-disable` and never weaken `eslint.config.mjs` to make the gate pass.
-    - **Generator output** (files written by `nest new`, `npx @averildwi/nest-prisma`, `npx @averildwi/nest-common`, `npx @averildwi/nest-skills`, `prisma init`) is committed **as generated**, one commit per tool, right after the tool runs, before any hand edit: `chore(prisma): set up prisma with pg adapter`, `chore(common): add nest-common scaffold`, `chore: add agent skills`. It passes the same gate; if it does not, that is a scaffold bug — report it to the user and commit as generated with the lint result in the body (`Generated code; eslint: <result>`). Do not hand-fix or reformat generator output in that commit; the fix is a separate `refactor(<scope>)` commit.
+<!-- /stack -->
+<!-- stack:oxlint -->
+    - Never add `oxlint-disable` / `eslint-disable` comments (oxlint honours both) and never weaken `.oxlintrc.json` to make the gate pass.
+<!-- /stack -->
+    - **Generator output** (files written by `nest new`, `npx @averildwi/nest-prisma`, `npx @averildwi/nest-common`, `npx @averildwi/nest-skills`, `prisma init`) is committed **as generated**, one commit per tool, right after the tool runs, before any hand edit: `chore(prisma): set up prisma with pg adapter`, `chore(common): add nest-common scaffold`, `chore: add agent skills`. It passes the same gate; if it does not, that is a scaffold bug — report it to the user and commit as generated with the lint result in the body (`Generated code; lint: <result>`). Do not hand-fix or reformat generator output in that commit; the fix is a separate `refactor(<scope>)` commit.
     - Build (`npm run build`) and tests have no exception at all. If they fail, find out whether your change caused it before committing; if they were already red before your change, stop and tell the user.
 7. **Stage specific files**: `git add <path> <path>`. Never `git add .`, `git add -A` or `git commit -a`. Run `git status` and `git diff --staged` before committing and check that only intended files are staged.
 8. **Never commit**: `.env*` (except `.env.example`), keys, tokens, credentials, `generated/`, `dist/`, `node_modules/`, `coverage/`, or local editor/OS files. If one is staged, unstage it (`git restore --staged <file>`) and make sure `.gitignore` covers it.
@@ -47,7 +59,12 @@ git switch -c feat/<topic>
 # 1. ... implement one unit of work ...
 
 # 2. verify (whole-project lint gate, see rule 6)
+<!-- stack:eslint -->
 npx eslint "{src,apps,libs,test}/**/*.ts"
+<!-- /stack -->
+<!-- stack:oxlint -->
+npm run lint
+<!-- /stack -->
 npm run test
 npm run build                        # only when rule 5 requires it
 

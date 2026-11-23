@@ -6,15 +6,17 @@ const { colors: c } = require('./ui/colors');
 const { CliError } = require('./errors');
 const { AGENTS, MANIFEST_FILE, BACKUP_DIR } = require('./config/agents');
 const { TEMPLATES_DIR } = require('./utils/templates');
+const { detectStack, describeStack } = require('./utils/detectStack');
 const steps = require('./steps');
 
-function buildContext({ projectRoot, pkg, options, agent, manifest, templatesDir = TEMPLATES_DIR, out = ui }) {
+function buildContext({ projectRoot, pkg, options, agent, manifest, templatesDir = TEMPLATES_DIR, out = ui, stack }) {
     const agentDef = AGENTS[agent];
     // --dir wins; otherwise keep the folder of a previous install of the same agent.
     const skillsDir =
         options.dir ||
         (manifest && manifest.agent === agent && manifest.skillsDir) ||
         agentDef.skillsDir;
+    const detected = stack || detectStack(projectRoot);
     return {
         projectRoot,
         pkg,
@@ -23,12 +25,17 @@ function buildContext({ projectRoot, pkg, options, agent, manifest, templatesDir
         agent: agentDef,
         skillsDir,
         manifest,
+        stack: detected,
         // A different agent or folder than last time: files that depend on it
         // (AGENTS.md, CLAUDE.md) may be rewritten if the user has not edited them.
         configChanged: Boolean(manifest && (manifest.agent !== agent || manifest.skillsDir !== skillsDir)),
+        // The project moved to another test runner, linter or module format, so
+        // the installed examples no longer match it.
+        stackChanged: Boolean(manifest && manifest.stack && manifest.stack !== describeStack(detected)),
         previousSkillsDir: manifest && manifest.skillsDir !== skillsDir ? manifest.skillsDir : undefined,
         templatesDir,
         indexFile: 'AGENTS.md',
+        indexMode: 'file',
         nextFiles: {},
         ui: out,
     };
@@ -60,7 +67,8 @@ function printPlan(ctx, plan, { dryRun }) {
         ['Command', ctx.command],
         ['Agent', ctx.agent.label],
         ['Skills folder', ctx.skillsDir],
-        ['Index', ctx.indexFile],
+        ['Project stack', describeStack(ctx.stack)],
+        ['Index', ctx.indexMode === 'block' ? `${ctx.indexFile} (nest-skills block)` : ctx.indexFile],
     ]);
     ui.section(dryRun ? 'Planned changes (dry run, nothing will be written)' : 'Planned changes');
     for (const { entries } of plan) {
@@ -99,6 +107,7 @@ function collectNotes(plan) {
     return {
         edited: entries.filter((e) => e.kind === 'warn' && /edited by you/.test(e.reason || '')).map((e) => e.label),
         foreign: entries.filter((e) => e.kind === 'warn' && /not written by nest-skills/.test(e.reason || '')).map((e) => e.label),
+        removed: entries.filter((e) => e.kind === 'warn' && /removed (?:by you|the nest-skills block)/.test(e.reason || '')).map((e) => e.label),
         outdated: entries.filter((e) => /newer version available/.test(e.reason || '')).map((e) => e.label),
     };
 }
@@ -131,9 +140,19 @@ function printNotes(ctx, notes) {
         ui.section('Left your own files untouched');
         for (const f of notes.foreign) ui.out(`    ${c.yellow('!')} ${f}`);
     }
+    if (notes.removed.length) {
+        ui.section('Not added again');
+        for (const f of notes.removed) ui.out(`    ${c.yellow('!')} ${f}`);
+        ui.out(c.gray('    Re-run with --force to add it back.'));
+    }
     if (notes.outdated.length) {
         ui.section('Updates available');
         ui.out(`    ${notes.outdated.length} file(s) can be refreshed with ${c.cyan('npx @averildwi/nest-skills update')}`);
+    }
+    if (ctx.stackChanged) {
+        ui.section('Project stack changed');
+        ui.out(`    Last install: ${ctx.manifest.stack}. Now: ${describeStack(ctx.stack)}.`);
+        ui.out(c.gray('    Unedited skills were re-rendered for the new stack. Files you edited were kept; compare them by hand.'));
     }
     if (ctx.linkHint) {
         ui.section('Link the index from your AGENTS.md');

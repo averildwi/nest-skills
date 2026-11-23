@@ -106,6 +106,8 @@ function helpText(pkg) {
                          opencode -> .opencode/skills + AGENTS.md
                          claude   -> .claude/skills + AGENTS.md + CLAUDE.md (imports AGENTS.md)
                          both     -> .claude/skills (read by both tools) + AGENTS.md + CLAUDE.md
+                       An AGENTS.md you already have gets a marked nest-skills block; your text is kept.
+                       The skills follow the detected stack (ESM/CJS, Jest/Vitest, ESLint/oxlint).
     --dir <path>       Install skills somewhere else (relative to the project root)
     --force            Overwrite files you edited or wrote yourself (old copy kept in .nest-skills-backup/)
     -y, --yes          Skip prompts and the confirmation

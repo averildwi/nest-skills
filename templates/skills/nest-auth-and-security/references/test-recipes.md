@@ -14,10 +14,17 @@ Copy the spec that matches the code you wrote; the meta-test is required in ever
 | Env: boot fails without `JWT_SECRET` / feature secrets, console sender refuses production | `env.schema.spec.ts` | rule 25 env added |
 | e2e: token in body, identical 401s, old token after reset -> 401, role change applies, disabled -> 401, bad `:id` -> 400, extra body field -> 400, `/auth/me` keys, 6th login -> 429, forged XFF, empty CORS, P2002 -> 409 | `test/auth.e2e-spec.ts` | when a test database exists |
 
+<!-- stack:jest -->
 **Prisma 7 + Jest e2e:** the client loads its query compiler with a dynamic `import()`. Jest (CommonJS) then fails
 with "A dynamic import callback was invoked without --experimental-vm-modules" as soon as a real query runs. Use
 `"test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json --runInBand"`.
 Unit specs with a mocked `PrismaService` are not affected.
+<!-- /stack -->
+<!-- stack:vitest -->
+**Prisma 7 + Vitest e2e:** Vitest runs ESM natively, so the client's dynamic `import()` needs no flag. The e2e specs
+share one database, so run the files one after another:
+`"test:e2e": "vitest run --config ./vitest.config.e2e.ts --no-file-parallelism"`.
+<!-- /stack -->
 
 ## Meta-test: route guards (required)
 

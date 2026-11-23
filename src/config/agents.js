@@ -37,8 +37,10 @@ const AGENTS = {
     },
 };
 
-/** Fallback index name when the project already has its own AGENTS.md. */
+/** Fallback index name used by installs made before 1.2.0, when the project already had its own AGENTS.md. */
 const FALLBACK_INDEX = 'AGENTS.nest-skills.md';
+/** Manifest key of the marked block that 1.2.0+ writes into the project's own AGENTS.md. */
+const INDEX_BLOCK_KEY = 'AGENTS.md#nest-skills';
 const MANIFEST_FILE = '.nest-skills.json';
 /**
  * --force keeps the replaced file here, outside the skills folder, so the
@@ -46,4 +48,4 @@ const MANIFEST_FILE = '.nest-skills.json';
  */
 const BACKUP_DIR = '.nest-skills-backup';
 
-module.exports = { AGENTS, FALLBACK_INDEX, MANIFEST_FILE, BACKUP_DIR };
+module.exports = { AGENTS, FALLBACK_INDEX, INDEX_BLOCK_KEY, MANIFEST_FILE, BACKUP_DIR };

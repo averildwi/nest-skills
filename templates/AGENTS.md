@@ -5,6 +5,9 @@ This project follows a fixed NestJS + Prisma standard. The rules live in skills 
 (use your skill tool if you have one, otherwise read the file).
 If a rule here conflicts with your general habits, the skill wins.
 
+**Project stack** (detected by nest-skills, the examples follow it): {{STACK}}.
+If the project changes stack (for example Jest to Vitest), re-run `npx @averildwi/nest-skills update`.
+
 ## Which skill to read
 
 | You are about to... | Read |
@@ -48,7 +51,12 @@ If a rule here conflicts with your general habits, the skill wins.
    - `await` on Prisma inside a loop.
    - Services returning `{ message, data }`.
    - `prisma migrate reset`, `db push --accept-data-loss` / `--force-reset` without explicit approval, or a workaround when Prisma refuses.
+<!-- stack:eslint -->
 4. New projects use strict TypeScript: `"strict": true` (at minimum `"noImplicitAny": true`) and ESLint `@typescript-eslint/no-explicit-any: "warn"`. Do not retrofit strictness into an existing project unless asked.
+<!-- /stack -->
+<!-- stack:oxlint -->
+4. New projects use strict TypeScript: `"strict": true` (at minimum `"noImplicitAny": true`). The Nest 12 `.oxlintrc.json` turns `typescript/no-explicit-any` **off**, so lint does not catch `any`: rule 3 still forbids it, so check your own diff. Do not change `.oxlintrc.json` or retrofit strictness into an existing project unless asked.
+<!-- /stack -->
 5. Before saying you are done: you ran lint (whole project) and the tests yourself, and they pass. Run `npm run build` too when `git-workflow` rule 5 requires it (Prisma schema, `tsconfig*.json`, `nest-cli.json`, `package.json`, `main.ts`). Then commit per `git-workflow`.
     - When a task touched a controller, an endpoint, roles, or anything auth (login, register, reset, OTP, tokens), also run the checklist at the end of `nest-auth-and-security` and its `references/test-recipes.md` — the route-guard meta-test is required in every project, not optional.
 6. Never read, print or commit `.env*` contents or secrets.
