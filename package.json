@@ -38,7 +38,7 @@
     "access": "public"
   },
   "engines": {
-    "node": ">=18.17"
+    "node": "^20.19 || ^22.12 || >=24.0"
   },
   "type": "commonjs",
   "dependencies": {
