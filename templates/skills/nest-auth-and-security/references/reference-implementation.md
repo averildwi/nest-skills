@@ -7,8 +7,13 @@ Copy these files as they are. They compile against `@averildwi/nest-common` 3.0.
 **Preflight (rule 24):** `src/common/` and `src/prisma/` exist. If not, stop and tell the user to run
 `npx @averildwi/nest-prisma` then `npx @averildwi/nest-common` first.
 
-**Install:** `npm i @nestjs/jwt@^11 passport-jwt passport` and `npm i -D @types/passport-jwt`.
-`@nestjs/jwt` 12 is ESM-only and breaks Jest in a CommonJS Nest 11 project ("Must use import to load ES Module").
+**Install:** `npm i @nestjs/jwt passport-jwt passport` and `npm i -D @types/passport-jwt`.
+`@nestjs/jwt` 12 is ESM-only, like every `@nestjs/*` 12 package. In an ESM project (Vitest) nothing more is needed.
+Under Jest in a CommonJS project it loads only on Node >= 24.9 **and** with `node --experimental-vm-modules` in the
+`test*` scripts (the Nest 12 CommonJS template already has both). Otherwise Jest fails with
+"Must use import to load ES Module". A Nest 11 CommonJS project runs plain `jest`: either add the flag
+(`node --experimental-vm-modules ./node_modules/jest/bin/jest.js`) on Node >= 24.9, or pin `@nestjs/jwt@^11`.
+Ask the user which one; do not change the Node version yourself.
 
 **Pick the parts:** login + me + change-password + logout-all are core. register, verify-otp, resend-otp,
 forgot-password, reset-password, `OtpService`, `MailModule` and `OtpCode` are the optional OTP module: drop them
@@ -130,7 +135,7 @@ export interface AuthenticatedRequest extends Request {
 
 ```ts
 // src/config/env.schema.ts
-import * as Joi from 'joi';
+import Joi from 'joi'; // not `import * as Joi`: that fails at boot in ESM projects
 
 /** Project env vars, concatenated onto baseEnvSchema by AppConfigModule.forProject(). */
 export const projectEnvSchema = Joi.object({
