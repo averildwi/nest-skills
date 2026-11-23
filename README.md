@@ -22,9 +22,8 @@ npx @averildwi/nest-skills --agent opencode   # or claude / both
 ```
 
 Commit after each tool, on its own (see the `git-workflow` skill). The skills apply to
-Nest 11 and Nest 12, CommonJS and ESM. Where the two differ (`.js` import suffixes,
-`@nestjs/config` 12 `libraryOptions`, `@nestjs/jwt` 12 under Jest), the skill says so.
-Test and lint examples still assume Jest + ESLint; Vitest and oxlint variants are planned.
+Nest 11 and Nest 12, CommonJS and ESM: the examples are installed for the stack the
+project uses (see "Fitted to your project").
 
 ## What gets installed
 
@@ -34,7 +33,36 @@ Test and lint examples still assume Jest + ESLint; Vitest and oxlint variants ar
 | `claude` | `.claude/skills/<name>/SKILL.md` | `AGENTS.md` | `CLAUDE.md` with `@AGENTS.md` |
 | `both` | `.claude/skills/<name>/SKILL.md` (OpenCode reads this folder too) | `AGENTS.md` | `CLAUDE.md` with `@AGENTS.md` |
 
+When the project already has its own `AGENTS.md` (every `nest new` on Nest 12 writes one),
+the index is added to it as a marked block:
+
+```markdown
+<!-- nest-skills:start -->
+...the index...
+<!-- nest-skills:end -->
+```
+
+Your text outside the two markers is never read, moved or rewritten, and `update` only
+replaces what is between them. Nothing has to be linked by hand.
+
 Plus `.nest-skills.json`, which records a hash of every file the tool wrote. Commit it.
+
+## Fitted to your project
+
+The skills are installed for the stack the project actually uses, detected from
+`package.json` (never asked, never guessed from the Nest version):
+
+| Detected | Effect on the installed skills |
+|---|---|
+| `"type": "module"` or `.js` imports in `src/app.module.ts` | relative imports in the examples end in `.js` |
+| Vitest | `vi.fn()`, `vi.spyOn()`, `import type { Mock } from 'vitest'`, Vitest config and e2e flags |
+| Jest | `jest.fn()`, `jest.Mock`, the `moduleNameMapper` rule for the Prisma 7 client |
+| oxlint | the lint gate is `npm run lint`, rules named `typescript/...`, `.oxlintrc.json` |
+| ESLint | the lint gate is `npx eslint "{src,apps,libs,test}/**/*.ts"`, `eslint.config.mjs` |
+
+The detected stack is printed in the plan and recorded in `.nest-skills.json`. If the
+project later changes stack, the next run says so and re-renders the skills you have not
+edited (files you edited are always kept).
 
 A skill folder may also ship supporting files next to `SKILL.md` (for example
 `nest-auth-and-security/references/*.md`). They are installed and edit-protected the same way;
@@ -53,8 +81,8 @@ Skills:
 | `nest-testing` | service unit tests with mocked Prisma and transactions |
 | `git-workflow` | branch, verify, stage specific files, Conventional Commits, local commits only |
 
-`AGENTS.md` maps tasks to skills, lists the global "never do" rules, and says how to
-behave when existing scaffold code differs from the standard.
+`AGENTS.md` maps tasks to skills, lists the global "never do" rules, names the detected
+stack, and says how to behave when existing scaffold code differs from the standard.
 
 ## Options
 
@@ -76,8 +104,11 @@ npx @averildwi/nest-skills update [options]
 
 - Your own **`AGENTS.md` / `CLAUDE.md`** (not written by nest-skills) are **never** overwritten,
   not even with `--force`.
-  - Own `AGENTS.md`: the index goes to `AGENTS.nest-skills.md` and the CLI prints the line to add.
-  - Own `CLAUDE.md`: left as is; the CLI tells you to add `@AGENTS.md` (or the fallback name).
+  - Own `AGENTS.md`: the index is added as a block between `<!-- nest-skills:start -->` and
+    `<!-- nest-skills:end -->`. Everything outside the markers stays byte-for-byte as it was,
+    including CRLF line endings. Delete the block and it is not added again (unless you pass `--force`).
+  - Own `CLAUDE.md`: left as is; the CLI tells you to add `@AGENTS.md`.
+  - Installs made before 1.2.0 keep their `AGENTS.nest-skills.md`; nothing moves under you.
 - A skill file with the same name that you wrote yourself is kept; `--force` replaces it
   and saves yours under `.nest-skills-backup/<timestamp>/`.
 - A file nest-skills wrote and **you edited** is kept by `install` and `update`.

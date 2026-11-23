@@ -80,10 +80,16 @@ The old skills folder is **not deleted**; the CLI prints the `git rm -r` command
 
 ## 5. When you already have AGENTS.md or CLAUDE.md
 
-- Own `AGENTS.md`: kept. The index is written to `AGENTS.nest-skills.md`. Add a line to your
-  `AGENTS.md` such as `Read AGENTS.nest-skills.md before writing NestJS code and follow it.`
-- Own `CLAUDE.md`: kept. Add `@AGENTS.md` (or `@AGENTS.nest-skills.md`) as its first line.
+- Own `AGENTS.md` (Nest 12 `nest new` always writes one): kept. The index is added at the
+  end, inside `<!-- nest-skills:start -->` / `<!-- nest-skills:end -->`, with its headings
+  nested one level so they sit under the file's own title. Text outside the markers is never
+  touched and keeps its line endings. `update` replaces only what is between the markers;
+  if you edited inside the block it is kept, and `--force` replaces the block (your copy
+  goes to `.nest-skills-backup/`). Delete the whole block and it stays gone until `--force`.
+- Own `CLAUDE.md`: kept. Add `@AGENTS.md` as its first line.
   If it already has that line, nothing is reported.
+- Installed before 1.2.0, with the index in `AGENTS.nest-skills.md`? That file keeps being
+  used and refreshed; nest-skills never moves the index on its own.
 
 ## 6. Existing scaffold code that differs from the skills
 
@@ -92,6 +98,22 @@ versions may differ (optional `page?` in `PaginationDto`, `string[]` roles, `any
 interceptors, CORS `'*'`, no Jest `moduleNameMapper`). The section
 "When the existing code differs from these skills" in `AGENTS.md` tells the agent to adapt
 at the call site, not rewrite shared code silently, and to propose a separate commit.
+
+## 7. The skills follow the project stack
+
+`detectStack` reads `package.json` (and `src/app.module.ts` for the import style) and the
+skills are rendered for what it finds: Vitest or Jest mocks, oxlint or ESLint commands,
+`.js` import suffixes or none. The result is printed as `Project stack` in the plan and
+stored in `.nest-skills.json`:
+
+```
+Project stack  ESM · .js imports · Vitest · oxlint
+```
+
+Nothing is inferred from the Nest major: a Nest 11 project can be ESM and a Nest 12 project
+can be CommonJS. After the project changes stack (for example Jest to Vitest), run
+`npx @averildwi/nest-skills update`; skills you have not edited are re-rendered, and the
+run reports what changed.
 
 ## Exit codes
 
