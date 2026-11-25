@@ -10,10 +10,11 @@
     "bin",
     "src",
     "templates",
-    "docs"
+    "docs",
+    "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "node --test test/unit.test.js test/variants.test.js test/detectStack.test.js test/integration.test.js"
+    "test": "node --test test/unit.test.js test/variants.test.js test/detectStack.test.js test/package.test.js test/integration.test.js"
   },
   "keywords": [
     "nestjs",
